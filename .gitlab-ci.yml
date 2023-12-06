@@ -1,0 +1,29 @@
+image: danger89/gtk3-docker-cmake-ninja:3.4
+
+stages:
+  - test
+  - build
+
+static_code_analysis:
+  stage: test
+  script:
+    - cppcheck --version
+    - ./scripts/cpp_check.sh
+
+code_style_guidelines:
+  stage: test
+  script:
+    - clang-format --version
+    - ./scripts/check_format.sh
+
+build:
+  stage: build
+  script: ./scripts/build_prod.sh
+#unit_test:
+#  stage: test
+#  script: ./build_prod/bin/runTests
+#  cache:
+#      key: "$CI_PIPELINE_ID"
+#      policy: pull
+#      paths:
+#        - build_prod/bin/

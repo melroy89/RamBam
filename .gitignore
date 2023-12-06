@@ -1,5 +1,7 @@
 # Build
 /build
+/build_prod
+/build_debug
 
 # CMake
 CMakeLists.txt.user

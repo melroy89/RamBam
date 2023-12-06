@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 
+include(FetchContent)
+
 set(PROJECT_NAME RamBam)
 set(PROJECT_TARGET rambam)
 
@@ -20,6 +22,12 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 # Add the executable
 add_executable(${PROJECT_TARGET} src/main.cpp)
 
-# Link libcurl
-find_package(CURL REQUIRED)
-target_link_libraries(${PROJECT_TARGET} CURL::libcurl)
+# Download external dependency
+FetchContent_Declare(
+    Cpp20HttpClient
+    GIT_REPOSITORY https://github.com/avocadoboi/cpp20-http-client.git
+)
+FetchContent_MakeAvailable(Cpp20HttpClient)
+
+# Link HTTP Client for C++20
+target_link_libraries(${PROJECT_TARGET} Cpp20HttpClient::cpp20_http_client)
