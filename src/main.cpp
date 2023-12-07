@@ -4,19 +4,21 @@
 
 #include <cpp20_http_client.hpp>
 
+using namespace http_client;
+
 void perform_request(const std::string& initial_url, int repeat_count_multi, const std::string& post_data = "") {
     std::string url (initial_url);
     auto response_count = 0;
     while (true) {
-        http_client::Response response;
+        Response response;
         if (post_data.empty()) {
             // Get request by default
-            response = http_client::get(url)
+            response = get(url)
                 .add_header({.name="User-Agent", .value="RamBam/1.0"})
                 .send();
         } else {
             // JSON Post request
-            response = http_client::post(url)
+            response = post(url)
                 .add_header({.name="User-Agent", .value="RamBam/1.0"})
                 .add_header({.name="Content-Type", .value="application/json"})
                 .set_body(post_data)
@@ -26,8 +28,8 @@ void perform_request(const std::string& initial_url, int repeat_count_multi, con
         std::cout << "\nHeaders " << response_count++ << ": \n" << response.get_headers_string() << '\n';
 
         // Follow 30x status codes
-        if (response.get_status_code() == http_client::StatusCode::MovedPermanently ||
-            response.get_status_code() == http_client::StatusCode::Found) 
+        if (response.get_status_code() == StatusCode::MovedPermanently ||
+            response.get_status_code() == StatusCode::Found)
         {
             if (auto const new_url = response.get_header_value("location")) {
                 url = *new_url; // Override URL
