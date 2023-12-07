@@ -27,21 +27,21 @@ void perform_request(const std::string& url, int repeat_requests_count, const st
             // Get request by default
             response_future = get(url)
                 .add_header({.name="User-Agent", .value="RamBam/1.0"})
-                .send_async();
+                .send_async<512>();
         } else {
             // JSON Post request
             response_future = post(url)
                 .add_header({.name="User-Agent", .value="RamBam/1.0"})
                 .add_header({.name="Content-Type", .value="application/json"})
                 .set_body(post_data)
-                .send_async();
+                .send_async<512>();
         }
         // Push the future into the vector store
         futures.emplace_back(std::move(response_future));
     }
 
     for (auto& future : futures) {
-        while (future.wait_for(5ms) != std::future_status::ready) {
+        while (future.wait_for(1ms) != std::future_status::ready) {
             // Wait for the response to become ready
         }
 
@@ -53,7 +53,7 @@ void perform_request(const std::string& url, int repeat_requests_count, const st
                 if (auto const new_url = response.get_header_value("location")) {
                     auto new_response_future = get(*new_url)
                         .add_header({.name="User-Agent", .value="RamBam/1.0"})
-                        .send_async();
+                        .send_async<512>();
                     auto const new_response = new_response_future.get();
                     process_request(new_response);
                 } else {
@@ -73,13 +73,14 @@ int main() {
     std::string url = "http://localhost/test/";
 
     // Repeat the requests x times in parallel using threads
-    int repeat_thread_count = 10;
+    int repeat_thread_count = 6;
     // Repat the requests inside the thread again with x times
     // So a total of: repeat_thread_count * repeat_requests_count
-    int repeat_requests_count = 70;
+    int repeat_requests_count = 80;
 
     // Perform parallel HTTP requests
     std::vector<std::thread> threads;
+    threads.reserve(repeat_thread_count);
     for (int i = 0; i < repeat_thread_count; ++i) {
         threads.emplace_back([url, repeat_requests_count]() {
             // Perform the HTTP request for the current thread
