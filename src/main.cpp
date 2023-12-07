@@ -11,7 +11,7 @@ using namespace std::chrono_literals;
 void process_request(const Response& response) {
     std::cout << "Status code: " << static_cast<int>(response.get_status_code()) << std::endl;
     if (response.get_status_code()  == StatusCode::Ok) {
-        // std::cout << "Response: " << response.get_body_string() << std::endl;
+        std::cout << "Response: " << response.get_body_string() << std::endl;
     }
 }
 
