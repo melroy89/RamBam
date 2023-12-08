@@ -19,6 +19,11 @@ code_style_guidelines:
 build:
   stage: build
   script: ./scripts/build_prod.sh
+  artifacts:
+    name: "RamBam"
+    expire_in: 1 month
+    paths:
+      - build_prod/rambam
 #unit_test:
 #  stage: test
 #  script: ./build_prod/bin/runTests
