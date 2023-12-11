@@ -99,14 +99,15 @@ void processArguments(const cxxopts::ParseResult& result, cxxopts::Options& opti
   }
 
   // TODO: will be mandatory
-  //if (!result.count("urls"))
+  // if (!result.count("urls"))
   //{
   //  std::cerr << "error: missing URL(s) as last argument\n";
   //  std::cout << options.help() << std::endl;
   //  exit(0);
   //}
 
-  if (result.count("urls")) {
+  if (result.count("urls"))
+  {
     for (const auto& url : result["urls"].as<std::vector<std::string>>())
     {
       std::cout << "URL: " << url << std::endl;
