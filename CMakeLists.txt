@@ -62,7 +62,6 @@ set(CXXOPTS_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)
 set(CXXOPTS_ENABLE_WARNINGS OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(cxxopts)
 
-
 # Link HTTP Client for C++20 & CXXOPTS
 target_link_libraries(${PROJECT_TARGET} Cpp20HttpClient::cpp20_http_client cxxopts)
 

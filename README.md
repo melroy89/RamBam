@@ -13,12 +13,10 @@ Written in C++, using a [C++20 HTTP client](https://github.com/avocadoboi/cpp20-
 Building the RamBam binary is easy:
 
 ```bash
-# First create a build folder
-mkdir build
-# Go into the folder
-cd build
-# Prepare the make
-cmake ..
-# Build it!
-make -j 4
+# Configure build folder (prepare)
+cmake -B build
+# Build it! Using make
+cmake --build ./build -j 8 --target rambam
 ```
+
+Binary is now located at: `build/rambam`.

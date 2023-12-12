@@ -147,10 +147,10 @@ int main(int argc, char* argv[])
   std::string url = "http://localhost/test/";
 
   // Repeat the requests x times in parallel using threads
-  int repeat_thread_count = 1;
+  int repeat_thread_count = 3;
   // Repat the requests inside the thread again with x times
   // So a total of: repeat_thread_count * repeat_requests_count
-  int repeat_requests_count = 2;
+  int repeat_requests_count = 60;
 
   // Perform parallel HTTP requests
   std::vector<std::thread> threads;
