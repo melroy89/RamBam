@@ -20,9 +20,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Enable compiler warnings
 add_compile_options(-Wall -Wextra -pedantic)
-set(CMAKE_CXX_FLAGS_DEBUG "-g")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g")
 # Enable optimization
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DNDEBUG")
 
 configure_file(
   "${PROJECT_SOURCE_DIR}/include/project_config.h.in"
