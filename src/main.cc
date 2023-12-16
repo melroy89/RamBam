@@ -19,9 +19,9 @@ void process_request(const Response& response)
   std::cout << "Status code: " << static_cast<int>(response.get_status_code()) << std::endl;
   if (response.get_status_code() == StatusCode::Ok)
   {
-    std::cout << "Response body: " << response.get_body_string() << std::endl;
+    std::cout << "Response body: " << response.get_body_string();
     std::cout << "Headers: " << response.get_headers_string() << std::endl;
-    std::cout << "Headers: " << response.get_headers_string() << std::endl;
+    std::cout << "Status message: " << response.get_status_message() << "\n\r\n" << std::endl;
   }
 }
 
