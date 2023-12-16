@@ -17,7 +17,7 @@ Building the RamBam binary is easy:
 # Configure build folder (prepare)
 cmake -B build
 # Build it! Using make
-cmake --build ./build -j 8 --target rambam
+cmake --build ./build -j 8 --config Release --target rambam
 ```
 
 Binary is now located at: `build/rambam`.
