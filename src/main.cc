@@ -21,6 +21,7 @@ void process_request(const Response& response)
   {
     std::cout << "Response body: " << response.get_body_string() << std::endl;
     std::cout << "Headers: " << response.get_headers_string() << std::endl;
+    std::cout << "Headers: " << response.get_headers_string() << std::endl;
   }
 }
 

@@ -25,7 +25,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Enable compiler warnings
 add_compile_options(-Wall -Wextra -pedantic)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -Xpreprocessor -fPIC")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g")
 # Enable optimization
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DNDEBUG")
@@ -51,6 +51,7 @@ add_executable(${PROJECT_TARGET} ${SOURCES})
 FetchContent_Declare(
     Cpp20HttpClient
     GIT_REPOSITORY https://github.com/avocadoboi/cpp20-http-client.git
+    GIT_SHALLOW    TRUE
 )
 FetchContent_MakeAvailable(Cpp20HttpClient)
 
