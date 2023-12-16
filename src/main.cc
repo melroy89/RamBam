@@ -10,6 +10,10 @@
 using namespace http_client;
 using namespace std::chrono_literals;
 
+/**
+Looking into: https://github.com/alibaba/yalantinglibs#coro_http
+*/
+
 void process_request(const Response& response)
 {
   std::cout << "Status code: " << static_cast<int>(response.get_status_code()) << std::endl;
