@@ -14,6 +14,7 @@ using namespace std::chrono_literals;
 Looking into: https://github.com/alibaba/yalantinglibs#coro_http
 Boost network: https://www.boost.org/doc/libs/1_82_0/libs/beast/example/http/client/sync/http_client_sync.cpp
 Async (coroutines): https://www.boost.org/doc/libs/1_79_0/doc/html/boost_asio/example/cpp20/channels/throttling_proxy.cpp &
+https://www.boost.org/doc/libs/1_79_0/doc/html/boost_asio/example/cpp17/coroutines_ts/echo_server.cpp &
 https://www.boost.org/doc/libs/1_79_0/doc/html/boost_asio/example/cpp17/coroutines_ts/chat_server.cpp
 */
 
@@ -88,7 +89,7 @@ void perform_request(const std::string& url, int repeat_requests_count, const st
     }
     catch (const std::exception& e)
     {
-      std::cerr << "Error: Unable to fetch URL with error:" << e.var/log/nginx/error.log notice;      what() << std::endl;
+      std::cerr << "Error: Unable to fetch URL with error:" << e.what() << std::endl;
     }
   }
 }
