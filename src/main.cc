@@ -12,8 +12,8 @@ using namespace std::chrono_literals;
 
 /**
 Looking into: https://github.com/alibaba/yalantinglibs#coro_http
-Boost Beast: https://github.com/boostorg/beast &
-https://www.boost.org/doc/libs/1_82_0/libs/beast/example/http/client/sync/http_client_sync.cpp
+Boost Beast: https://github.com/boostorg/beast
+Example of beast async: https://github.com/boostorg/beast/blob/develop/example/http/client/async/http_client_async.cpp
 Boost low-level asio (coroutines): https://www.boost.org/doc/libs/1_79_0/doc/html/boost_asio/example/cpp20/channels/throttling_proxy.cpp &
 https://www.boost.org/doc/libs/1_79_0/doc/html/boost_asio/example/cpp17/coroutines_ts/echo_server.cpp &
 https://www.boost.org/doc/libs/1_79_0/doc/html/boost_asio/example/cpp17/coroutines_ts/chat_server.cpp
