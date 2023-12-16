@@ -7,6 +7,7 @@ Written in C++, using a [C++20 HTTP client](https://github.com/avocadoboi/cpp20-
 
 - C++ Compiler (`sudo apt install build-essential`)
 - CMake (`sudo apt install cmake`)
+- Ccache (optional, but much **recommended**: `sudo apt install ccache`)
 
 ## Build
 
