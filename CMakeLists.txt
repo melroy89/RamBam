@@ -53,6 +53,9 @@ FetchContent_Declare(
     GIT_REPOSITORY https://github.com/avocadoboi/cpp20-http-client.git
     GIT_SHALLOW    TRUE
 )
+set(CPP20_HTTP_CLIENT_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(CPP20_HTTP_CLIENT_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(CPP20_HTTP_CLIENT_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(Cpp20HttpClient)
 
 # Lightweight C++ command line option parser
