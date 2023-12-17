@@ -19,10 +19,6 @@ project(${PROJECT_NAME}
   DESCRIPTION "Stress test your website/API with massive parallel HTTP requests"
   LANGUAGES CXX)
 
-# Set the C++ standard to C++20
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
 # Enable compiler warnings
 add_compile_options(-Wall -Wextra -pedantic)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror")
@@ -44,6 +40,10 @@ set(SOURCES
 
 # Add the executable
 add_executable(${PROJECT_TARGET} ${SOURCES})
+
+# Set C++20
+target_compile_features(${PROJECT_TARGET} PUBLIC cxx_std_20)
+set_target_properties(${PROJECT_TARGET} PROPERTIES CXX_EXTENSIONS OFF)
 
 # Download external dependencies
 
