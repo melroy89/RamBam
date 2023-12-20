@@ -27,6 +27,7 @@ void process_request(const Response& response)
     std::cout << "Response body: " << response.get_body_string();
     std::cout << "Headers: " << response.get_headers_string() << std::endl;
     std::cout << "Status message: " << response.get_status_message() << "\n\r\n" << std::endl;
+    std::cout << "Get total time duration: " << response.get_total_time() << std::endl;
   }
 }
 
@@ -158,10 +159,10 @@ int main(int argc, char* argv[])
   std::string url = "http://localhost/test/";
 
   // Repeat the requests x times in parallel using threads
-  int repeat_thread_count = 1;
+  int repeat_thread_count = 2;
   // Repat the requests inside the thread again with x times
   // So a total of: repeat_thread_count * repeat_requests_count
-  int repeat_requests_count = 4;
+  int repeat_requests_count = 2;
 
   // Perform parallel HTTP requests
   std::vector<std::thread> threads;
