@@ -50,7 +50,8 @@ set_target_properties(${PROJECT_TARGET} PROPERTIES CXX_EXTENSIONS OFF)
 # CPP20 HTTP Client
 FetchContent_Declare(
     Cpp20HttpClient
-    GIT_REPOSITORY https://github.com/avocadoboi/cpp20-http-client.git
+    GIT_REPOSITORY https://github.com/melroy89/cpp20-http-client.git
+    GIT_TAG        origin/main
     GIT_SHALLOW    TRUE
 )
 set(CPP20_HTTP_CLIENT_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
