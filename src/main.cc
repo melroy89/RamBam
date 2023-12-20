@@ -136,7 +136,7 @@ int main(int argc, char* argv[])
     ("b,bar", "Param bar", cxxopts::value<std::string>())
     ("d,debug", "Enable debugging", cxxopts::value<bool>()->default_value("false"))
     ("f,foo", "Param foo", cxxopts::value<int>()->default_value("10"))
-    ("urls", "URL(s) under test", cxxopts::value<std::vector<std::string>>())
+    ("urls", "URL(s) under test (space separated)", cxxopts::value<std::vector<std::string>>())
     ("v,version", "Show the version")
     ("h,help", "Print usage");
   // clang-format on 
@@ -149,9 +149,9 @@ int main(int argc, char* argv[])
     auto result = options.parse(argc, argv);
     processArguments(result, options);
   }
-  catch (const cxxopts::OptionParseException& x)
+  catch (const cxxopts::exceptions::exception& error)
   {
-    std::cerr << "Error: " << x.what() << '\n';
+    std::cerr << "Error: " << error.what() << '\n';
     std::cout << options.help() << std::endl;
     return EXIT_FAILURE;
   }
