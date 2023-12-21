@@ -12,10 +12,7 @@ using namespace std::chrono_literals;
 
 /**
 Looking into: https://github.com/alibaba/yalantinglibs#coro_http
-Boost Beast: https://github.com/boostorg/beast
-Example of beast async: https://github.com/boostorg/beast/blob/develop/example/http/client/async/http_client_async.cpp
-Boost low-level asio (coroutines): https://www.boost.org/doc/libs/1_79_0/doc/html/boost_asio/example/cpp20/channels/throttling_proxy.cpp &
-https://www.boost.org/doc/libs/1_79_0/doc/html/boost_asio/example/cpp17/coroutines_ts/echo_server.cpp &
+Boost low-level asio (coroutines): 
 https://www.boost.org/doc/libs/1_79_0/doc/html/boost_asio/example/cpp17/coroutines_ts/chat_server.cpp
 */
 
@@ -69,7 +66,9 @@ void perform_request(const std::string& url, int repeat_requests_count, const st
     try
     {
       auto response = future.get();
-
+      process_request(response);
+      /*
+      301 and 302 should be done async.
       if (response.get_status_code() == StatusCode::MovedPermanently || response.get_status_code() == StatusCode::Found)
       {
         if (auto const new_url = response.get_header_value("location"))
@@ -88,6 +87,7 @@ void perform_request(const std::string& url, int repeat_requests_count, const st
       {
         process_request(response);
       }
+      */
     }
     catch (const std::exception& e)
     {
@@ -159,10 +159,10 @@ int main(int argc, char* argv[])
   std::string url = "http://localhost/test/";
 
   // Repeat the requests x times in parallel using threads
-  int repeat_thread_count = 2;
+  int repeat_thread_count = 8;
   // Repat the requests inside the thread again with x times
   // So a total of: repeat_thread_count * repeat_requests_count
-  int repeat_requests_count = 2;
+  int repeat_requests_count = 140;
 
   // Perform parallel HTTP requests
   std::vector<std::thread> threads;
