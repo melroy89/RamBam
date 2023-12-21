@@ -261,10 +261,10 @@ int main(int argc, char* argv[])
   }
 
   // Repeat the requests x times in parallel using threads
-  int repeat_thread_count = 4;
+  int repeat_thread_count = 2;
   // Repat the requests inside the thread again with x times
   // So a total of: repeat_thread_count * repeat_requests_count
-  int repeat_requests_count = 30;
+  int repeat_requests_count = 4;
 
   // Perform parallel HTTP requests using C++ Threads
   std::vector<std::thread> threads;
