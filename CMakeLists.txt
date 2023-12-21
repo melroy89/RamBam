@@ -20,10 +20,10 @@ project(${PROJECT_NAME}
   LANGUAGES CXX)
 
 # Enable compiler warnings
-add_compile_options(-Wall -Wextra -pedantic)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic") #  -Werror
+# Debug flags
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g")
-# Enable optimization
+# Enable optimization for release
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DNDEBUG")
 
 configure_file(
@@ -45,27 +45,25 @@ add_executable(${PROJECT_TARGET} ${SOURCES})
 target_compile_features(${PROJECT_TARGET} PUBLIC cxx_std_20)
 set_target_properties(${PROJECT_TARGET} PROPERTIES CXX_EXTENSIONS OFF)
 
-# Download external dependencies
+include(FetchContent)
 
-# CPP20 HTTP Client
+# Download external dependencies
+set(BOOST_INCLUDE_LIBRARIES asio regex algorithm)
+set(BOOST_ENABLE_CMAKE ON)
 FetchContent_Declare(
-    Cpp20HttpClient
-    GIT_REPOSITORY https://github.com/melroy89/cpp20-http-client.git
-    GIT_TAG        origin/main
-    GIT_SHALLOW    TRUE
+  Boost
+  URL https://github.com/boostorg/boost/releases/download/boost-1.84.0/boost-1.84.0.7z
+  USES_TERMINAL_DOWNLOAD TRUE
+  DOWNLOAD_NO_EXTRACT FALSE
 )
-set(CPP20_HTTP_CLIENT_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-set(CPP20_HTTP_CLIENT_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-set(CPP20_HTTP_CLIENT_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(Cpp20HttpClient)
+FetchContent_MakeAvailable(Boost)
 
 # Lightweight C++ command line option parser
-include(FetchContent)
 FetchContent_Declare(
-        cxxopts
-        GIT_REPOSITORY https://github.com/jarro2783/cxxopts.git
-        GIT_TAG        v3.1.1
-        GIT_SHALLOW    TRUE
+  cxxopts
+  GIT_REPOSITORY https://github.com/jarro2783/cxxopts.git
+  GIT_TAG        v3.1.1
+  GIT_SHALLOW    TRUE
 )
 set(CXXOPTS_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(CXXOPTS_BUILD_TESTS OFF CACHE BOOL "" FORCE)
@@ -73,7 +71,7 @@ set(CXXOPTS_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)
 set(CXXOPTS_ENABLE_WARNINGS OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(cxxopts)
 
-# Link HTTP Client for C++20 & CXXOPTS
-target_link_libraries(${PROJECT_TARGET} Cpp20HttpClient::cpp20_http_client cxxopts)
+# Link CXXOPTS
+target_link_libraries(${PROJECT_TARGET} cxxopts Boost::asio)
 
 target_include_directories(${PROJECT_TARGET} PRIVATE ${PROJECT_SOURCE_DIR}/include ${PROJECT_BINARY_DIR})
