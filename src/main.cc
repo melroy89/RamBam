@@ -29,9 +29,7 @@ boost::asio::awaitable<HttpResponse> async_http_call(boost::asio::io_context& io
                                                      const std::string& protocol,
                                                      const std::string& host,
                                                      const std::string& port,
-                                                     const std::string& path,
-                                                     const std::string& file,
-                                                     const std::string& parameters,
+                                                     const std::string& pathParams,
                                                      const std::string& post_data)
 {
   HttpResponse result;
@@ -41,7 +39,8 @@ boost::asio::awaitable<HttpResponse> async_http_call(boost::asio::io_context& io
     const auto start_time_point = std::chrono::steady_clock::now();
     // Resolve the server hostname and service
     boost::asio::ip::tcp::resolver resolver(io_context);
-    auto endpoint_iterator = co_await resolver.async_resolve(host, protocol, boost::asio::use_awaitable);
+    boost::asio::ip::tcp::resolver::query query(host, protocol);
+    auto endpoint_iterator = co_await resolver.async_resolve(query, boost::asio::use_awaitable);
 
     // Create and connect the socket
     boost::asio::ip::tcp::socket socket(io_context);
@@ -53,13 +52,18 @@ boost::asio::awaitable<HttpResponse> async_http_call(boost::asio::io_context& io
     // We should also support: DELETE, PUT, PATCH
     if (empty(post_data))
     {
-      request_stream << "GET " + path + " HTTP/1.1\r\n";
+      request_stream << "GET " + pathParams + " HTTP/1.1\r\n";
     }
     else
     {
-      request_stream << "POST " + path + " HTTP/1.1\r\n";
+      request_stream << "POST " + pathParams + " HTTP/1.1\r\n";
     }
-    request_stream << "Host: localhost\r\n";
+    std::string hostname(host);
+    if (!empty(port))
+    {
+      hostname.append(":" + port);
+    }
+    request_stream << "Host: " + hostname + "\r\n";
     request_stream << "User-Agent: RamBam/1.0\r\n";
     if (!empty(post_data))
     {
@@ -132,11 +136,8 @@ void spawn_http_requests(int repeat_requests_count, const std::string& url, cons
   {
     std::vector<std::string> parsed_url;
     boost::regex expression(
-        //   proto                 host               port
-        "^(\?:([^:/\?#]+)://)\?(\\w+[^/\?#:]*)(\?::(\\d+))\?"
-        //   path                  file       parameters
-        "(/\?(\?:[^\?#/]*/)*)\?([^\?#]*)\?(\\\?(.*))\?");
-
+        //   proto             host                 port     rest
+        "(\?:([^:/\?#]+)://)\?(\\w+[^/\?#:]*)(\?::(\\d+))*(?:)(.*)");
     // Make a non-const copy of the string
     std::string url_copy = url;
     boost::algorithm::trim(url_copy);
@@ -147,10 +148,9 @@ void spawn_http_requests(int repeat_requests_count, const std::string& url, cons
       {
         boost::asio::co_spawn(io,
                               async_http_call(io, std::move(parsed_url[0]), std::move(parsed_url[1]), std::move(parsed_url[2]),
-                                              std::move(parsed_url[3]), std::move(parsed_url[4]), std::move(parsed_url[5]), std::move(post_data)),
+                                              std::move(parsed_url[3]), std::move(post_data)),
                               boost::asio::detached);
       }
-
       // Run the tasks concurrently
       io.run();
     }
