@@ -84,8 +84,6 @@ boost::asio::awaitable<HttpResponse> async_http_call(boost::asio::io_context& io
     std::istream response_stream(&response);
     response_stream >> result.http_version;
     response_stream >> result.status_code;
-
-    std::string status_message;
     std::getline(response_stream, result.status_message);
 
     // Extract headers
