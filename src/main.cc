@@ -1,98 +1,163 @@
-#include <cpp20_http_client.hpp>
 #include <cxxopts.hpp>
-#include <future>
 #include <iostream>
+#include <string>
 #include <thread>
 #include <vector>
 
+#include <boost/algorithm/string.hpp>
+#include <boost/asio.hpp>
+#include <boost/asio/co_spawn.hpp>
+#include <boost/asio/detached.hpp>
+#include <boost/asio/use_awaitable.hpp>
+#include <boost/regex.hpp>
+
 #include "project_config.h"
 
-using namespace http_client;
 using namespace std::chrono_literals;
 
-/**
-Looking into: https://github.com/alibaba/yalantinglibs#coro_http
-Boost low-level asio (coroutines): 
-https://www.boost.org/doc/libs/1_79_0/doc/html/boost_asio/example/cpp17/coroutines_ts/chat_server.cpp
-*/
-
-void process_request(const Response& response)
+struct HttpResponse
 {
-  std::cout << "Status code: " << static_cast<int>(response.get_status_code()) << std::endl;
-  if (response.get_status_code() == StatusCode::Ok)
-  {
-    std::cout << "Response body: " << response.get_body_string();
-    std::cout << "Headers: " << response.get_headers_string() << std::endl;
-    std::cout << "Status message: " << response.get_status_message() << "\n\r\n" << std::endl;
-    std::cout << "Get total time duration: " << response.get_total_time() << std::endl;
-  }
-}
+  std::string http_version;
+  unsigned int status_code;
+  std::string status_message;
+  std::vector<std::pair<std::string, std::string>> headers;
+  std::string body;
+  std::chrono::duration<double, std::milli> total_time_duration;
+};
 
-void perform_request(const std::string& url, int repeat_requests_count, const std::string& post_data = "")
+boost::asio::awaitable<HttpResponse> async_http_call(boost::asio::io_context& io_context,
+                                                     const std::string& protocol,
+                                                     const std::string& host,
+                                                     const std::string& port,
+                                                     const std::string& path,
+                                                     const std::string& file,
+                                                     const std::string& parameters,
+                                                     const std::string& post_data)
 {
-  // Store the asynchronous responses
-  std::vector<std::future<Response>> futures;
-  futures.reserve(repeat_requests_count);
+  HttpResponse result;
 
-  // Loop over the nr of repeats
-  for (int i = 0; i < repeat_requests_count; ++i)
+  try
   {
-    std::future<Response> response_future;
-    if (post_data.empty())
+    const auto start_time_point = std::chrono::steady_clock::now();
+    // Resolve the server hostname and service
+    boost::asio::ip::tcp::resolver resolver(io_context);
+    auto endpoint_iterator = co_await resolver.async_resolve(host, protocol, boost::asio::use_awaitable);
+
+    // Create and connect the socket
+    boost::asio::ip::tcp::socket socket(io_context);
+    co_await boost::asio::async_connect(socket, endpoint_iterator, boost::asio::use_awaitable);
+    boost::asio::streambuf request;
+
+    // Compose the HTTP request
+    std::ostream request_stream(&request);
+    // We should also support: DELETE, PUT, PATCH
+    if (empty(post_data))
     {
-      // Get request by default
-      response_future = get(url).add_header({.name = "User-Agent", .value = "RamBam/1.0"}).send_async<512>();
+      request_stream << "GET " + path + " HTTP/1.1\r\n";
     }
     else
     {
-      // JSON Post request
-      response_future = post(url)
-                            .add_header({.name = "User-Agent", .value = "RamBam/1.0"})
-                            .add_header({.name = "Content-Type", .value = "application/json"})
-                            .set_body(post_data)
-                            .send_async<512>();
+      request_stream << "POST " + path + " HTTP/1.1\r\n";
     }
-    // Push the future into the vector store
-    futures.emplace_back(std::move(response_future));
+    request_stream << "Host: localhost\r\n";
+    request_stream << "User-Agent: RamBam/1.0\r\n";
+    if (!empty(post_data))
+    {
+      request_stream << "Content-Type: application/json; charset=utf-8\r\n";
+      request_stream << "Accept: */*\r\n"; // We should be able to override this (eg. application/json)
+      request_stream << "Content-Length: " << post_data.length() << "\r\n";
+    }
+    request_stream << "Connection: close\r\n\r\n"; // End is a double line feed
+    if (!empty(post_data))
+    {
+      request_stream << post_data;
+    }
+
+    // Send the HTTP request
+    co_await boost::asio::async_write(socket, request, boost::asio::use_awaitable);
+
+    // Read and print the HTTP response
+    boost::asio::streambuf response;
+    // Get till all the headers
+    co_await boost::asio::async_read_until(socket, response, "\r\n\r\n", boost::asio::use_awaitable);
+
+    std::istream response_stream(&response);
+    response_stream >> result.http_version;
+    response_stream >> result.status_code;
+    std::getline(response_stream, result.status_message);
+
+    // Extract headers
+    std::string header_line;
+    while (std::getline(response_stream, header_line) && header_line != "\r")
+    {
+      size_t colon_pos = header_line.find(':');
+      if (colon_pos != std::string::npos)
+      {
+        std::string header_name = header_line.substr(0, colon_pos);
+        std::string header_value = header_line.substr(colon_pos + 2); // Skip ': ' after colon
+        result.headers.emplace_back(std::move(header_name), std::move(header_value));
+      }
+    }
+
+    // Extract body content
+    std::string body(boost::asio::buffers_begin(response.data()), boost::asio::buffers_end(response.data()));
+    response.consume(response.size());
+    // Close connection
+    socket.close();
+
+    const auto end_time_point = std::chrono::steady_clock::now();
+    result.total_time_duration = end_time_point - start_time_point;
+
+    result.body = std::move(body);
+
+    std::cout << "Response: " << result.http_version << " " << std::to_string(result.status_code) << " " << result.status_message << std::endl;
+    std::cout << "Total duration: " << result.total_time_duration << std::endl;
+    std::cout << "Body Content:\n" << result.body << std::endl;
+    std::cout << "Headers:\n" << std::endl;
+    for (const auto& header : result.headers)
+    {
+      std::cout << "Name: " << header.first << " Value: " << header.second << std::endl;
+    }
   }
-
-  for (auto& future : futures)
+  catch (const std::exception& e)
   {
-    while (future.wait_for(1ms) != std::future_status::ready)
-    {
-      // Wait for the response to become ready
-    }
+    std::cerr << "Exception: " << e.what() << std::endl;
+  }
+  co_return result;
+}
 
-    try
+void spawn_http_requests(int repeat_requests_count, const std::string& url, const std::string& post_data = "")
+{
+  try
+  {
+    std::vector<std::string> parsed_url;
+    boost::regex expression(
+        //   proto                 host               port
+        "^(\?:([^:/\?#]+)://)\?(\\w+[^/\?#:]*)(\?::(\\d+))\?"
+        //   path                  file       parameters
+        "(/\?(\?:[^\?#/]*/)*)\?([^\?#]*)\?(\\\?(.*))\?");
+
+    // Make a non-const copy of the string
+    std::string url_copy = url;
+    boost::algorithm::trim(url_copy);
+    if (boost::regex_split(std::back_inserter(parsed_url), url_copy, expression))
     {
-      auto response = future.get();
-      process_request(response);
-      /*
-      301 and 302 should be done async.
-      if (response.get_status_code() == StatusCode::MovedPermanently || response.get_status_code() == StatusCode::Found)
+      boost::asio::io_context io;
+      for (int i = 0; i < repeat_requests_count; ++i)
       {
-        if (auto const new_url = response.get_header_value("location"))
-        {
-          auto new_response_future = get(*new_url).add_header({.name = "User-Agent", .value = "RamBam/1.0"}).send_async<512>();
-          auto const new_response = new_response_future.get();
-          process_request(new_response);
-        }
-        else
-        {
-          std::cerr << "Error: Got 301 or 302, but no new URL." << std::endl;
-          process_request(response);
-        }
+        boost::asio::co_spawn(io,
+                              async_http_call(io, std::move(parsed_url[0]), std::move(parsed_url[1]), std::move(parsed_url[2]),
+                                              std::move(parsed_url[3]), std::move(parsed_url[4]), std::move(parsed_url[5]), std::move(post_data)),
+                              boost::asio::detached);
       }
-      else
-      {
-        process_request(response);
-      }
-      */
+
+      // Run the tasks concurrently
+      io.run();
     }
-    catch (const std::exception& e)
-    {
-      std::cerr << "Error: Unable to fetch URL with error:" << e.what() << std::endl;
-    }
+  }
+  catch (std::exception& e)
+  {
+    std::printf("Exception: %s\n", e.what());
   }
 }
 
@@ -129,6 +194,8 @@ void processArguments(const cxxopts::ParseResult& result, cxxopts::Options& opti
 
 int main(int argc, char* argv[])
 {
+  std::string url;
+
   cxxopts::Options options("rambam", "Stress test your API or website");
 
   // clang-format off
@@ -148,6 +215,8 @@ int main(int argc, char* argv[])
   {
     auto result = options.parse(argc, argv);
     processArguments(result, options);
+    // TODO: Assign argument to URL
+    url = "http://localhost/test/";
   }
   catch (const cxxopts::exceptions::exception& error)
   {
@@ -156,22 +225,20 @@ int main(int argc, char* argv[])
     return EXIT_FAILURE;
   }
 
-  std::string url = "http://localhost/test/";
-
   // Repeat the requests x times in parallel using threads
-  int repeat_thread_count = 8;
+  int repeat_thread_count = 1;
   // Repat the requests inside the thread again with x times
   // So a total of: repeat_thread_count * repeat_requests_count
-  int repeat_requests_count = 140;
+  int repeat_requests_count = 3;
 
-  // Perform parallel HTTP requests
+  // Perform parallel HTTP requests using C++ Threads
   std::vector<std::thread> threads;
   threads.reserve(repeat_thread_count);
   for (int i = 0; i < repeat_thread_count; ++i)
   {
     threads.emplace_back([url, repeat_requests_count]() {
       // Perform the HTTP request for the current thread
-      perform_request(url, repeat_requests_count);
+      spawn_http_requests(repeat_requests_count, url);
     });
   }
 
