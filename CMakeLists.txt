@@ -1,7 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
 
-include(FetchContent)
-
 set(PROJECT_NAME RamBam)
 set(PROJECT_TARGET rambam)
 set(PROJECT_VERSION_MAJOR "1")

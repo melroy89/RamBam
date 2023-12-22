@@ -1,24 +1,18 @@
 #include <cxxopts.hpp>
-#include <future>
 #include <iostream>
 #include <string>
 #include <thread>
 #include <vector>
 
+#include <boost/algorithm/string.hpp>
 #include <boost/asio.hpp>
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/detached.hpp>
 #include <boost/asio/use_awaitable.hpp>
 #include <boost/regex.hpp>
-#include <boost/algorithm/string.hpp> 
 
 #include "project_config.h"
 
-using boost::asio::awaitable;
-using boost::asio::co_spawn;
-using boost::asio::detached;
-using boost::asio::use_awaitable;
-using boost::asio::ip::tcp;
 using namespace std::chrono_literals;
 
 struct HttpResponse
@@ -31,14 +25,14 @@ struct HttpResponse
   std::chrono::duration<double, std::milli> total_time_duration;
 };
 
-awaitable<HttpResponse> async_http_call(boost::asio::io_context& io_context,
-                                        const std::string& protocol,
-                                        const std::string& host,
-                                        const std::string& port,
-                                        const std::string& path,
-                                        const std::string& file,
-                                        const std::string& parameters,
-                                        const std::string& post_data)
+boost::asio::awaitable<HttpResponse> async_http_call(boost::asio::io_context& io_context,
+                                                     const std::string& protocol,
+                                                     const std::string& host,
+                                                     const std::string& port,
+                                                     const std::string& path,
+                                                     const std::string& file,
+                                                     const std::string& parameters,
+                                                     const std::string& post_data)
 {
   HttpResponse result;
 
@@ -46,19 +40,41 @@ awaitable<HttpResponse> async_http_call(boost::asio::io_context& io_context,
   {
     const auto start_time_point = std::chrono::steady_clock::now();
     // Resolve the server hostname and service
-    tcp::resolver resolver(io_context);
+    boost::asio::ip::tcp::resolver resolver(io_context);
     auto endpoint_iterator = co_await resolver.async_resolve(host, protocol, boost::asio::use_awaitable);
 
     // Create and connect the socket
-    tcp::socket socket(io_context);
+    boost::asio::ip::tcp::socket socket(io_context);
     co_await boost::asio::async_connect(socket, endpoint_iterator, boost::asio::use_awaitable);
+    boost::asio::streambuf request;
+
     // Compose the HTTP request
-    std::string request = "GET " + path + " HTTP/1.1\r\n"
-                          "Host: localhost\r\n"
-                          "Connection: close\r\n\r\n";
+    std::ostream request_stream(&request);
+    // We should also support: DELETE, PUT, PATCH
+    if (empty(post_data))
+    {
+      request_stream << "GET " + path + " HTTP/1.1\r\n";
+    }
+    else
+    {
+      request_stream << "POST " + path + " HTTP/1.1\r\n";
+    }
+    request_stream << "Host: localhost\r\n";
+    request_stream << "User-Agent: RamBam/1.0\r\n";
+    if (!empty(post_data))
+    {
+      request_stream << "Content-Type: application/json; charset=utf-8\r\n";
+      request_stream << "Accept: */*\r\n"; // We should be able to override this (eg. application/json)
+      request_stream << "Content-Length: " << post_data.length() << "\r\n";
+    }
+    request_stream << "Connection: close\r\n\r\n"; // End is a double line feed
+    if (!empty(post_data))
+    {
+      request_stream << post_data;
+    }
 
     // Send the HTTP request
-    co_await boost::asio::async_write(socket, boost::asio::buffer(request), boost::asio::use_awaitable);
+    co_await boost::asio::async_write(socket, request, boost::asio::use_awaitable);
 
     // Read and print the HTTP response
     boost::asio::streambuf response;
@@ -111,55 +127,6 @@ awaitable<HttpResponse> async_http_call(boost::asio::io_context& io_context,
   }
   co_return result;
 }
-
-/**
-void perform_request(const std::string& url, int repeat_requests_count, const std::string& post_data = "")
-{
-  // Store the asynchronous responses
-  std::vector<std::future<Response>> futures;
-  futures.reserve(repeat_requests_count);
-
-  // Loop over the nr of repeats
-  for (int i = 0; i < repeat_requests_count; ++i)
-  {
-    std::future<Response> response_future;
-    if (post_data.empty())
-    {
-      // Get request by default
-      response_future = get(url).add_header({.name = "User-Agent", .value = "RamBam/1.0"}).send_async<512>();
-    }
-    else
-    {
-      // JSON Post request
-      response_future = post(url)
-                            .add_header({.name = "User-Agent", .value = "RamBam/1.0"})
-                            .add_header({.name = "Content-Type", .value = "application/json"})
-                            .set_body(post_data)
-                            .send_async<512>();
-    }
-    // Push the future into the vector store
-    futures.emplace_back(std::move(response_future));
-  }
-
-  for (auto& future : futures)
-  {
-    while (future.wait_for(1ms) != std::future_status::ready)
-    {
-      // Wait for the response to become ready
-    }
-
-    try
-    {
-      auto response = future.get();
-      process_request(response);
-    }
-    catch (const std::exception& e)
-    {
-      std::cerr << "Error: Unable to fetch URL with error:" << e.what() << std::endl;
-    }
-  }
-}
-*/
 
 void spawn_http_requests(int repeat_requests_count, const std::string& url, const std::string& post_data = "")
 {
@@ -261,10 +228,10 @@ int main(int argc, char* argv[])
   }
 
   // Repeat the requests x times in parallel using threads
-  int repeat_thread_count = 2;
+  int repeat_thread_count = 1;
   // Repat the requests inside the thread again with x times
   // So a total of: repeat_thread_count * repeat_requests_count
-  int repeat_requests_count = 4;
+  int repeat_requests_count = 3;
 
   // Perform parallel HTTP requests using C++ Threads
   std::vector<std::thread> threads;
