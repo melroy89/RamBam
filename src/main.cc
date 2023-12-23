@@ -80,16 +80,20 @@ boost::asio::awaitable<HttpResponse> async_http_call(boost::asio::io_context& io
 
     // Read and print the HTTP response
     boost::asio::streambuf response;
-    // Get till all the headers, can we improve the performance of this call?
-    boost::asio::read_until(socket, response, "\r\n\r\n");
+    // Read until the status line.
+    boost::asio::read_until(socket, response, "\r\n");
 
     std::istream response_stream(&response);
     response_stream >> result.http_version;
     response_stream >> result.status_code;
     std::getline(response_stream, result.status_message);
 
+    // Get till all the headers, can we improve the performance of this call?
+    boost::asio::read_until(socket, response, "\r\n\r\n");
     // Extract headers
     std::string header_line;
+    int response_content_length = -1;
+    std::regex clregex(R"xx(^content-length:\s+(\d+))xx", std::regex_constants::icase);
     while (std::getline(response_stream, header_line) && header_line != "\r")
     {
       size_t colon_pos = header_line.find(':');
@@ -99,18 +103,33 @@ boost::asio::awaitable<HttpResponse> async_http_call(boost::asio::io_context& io
         std::string header_value = header_line.substr(colon_pos + 2); // Skip ': ' after colon
         result.headers.emplace_back(std::move(header_name), std::move(header_value));
       }
+      std::smatch match;
+      if(std::regex_search(header_line, match, clregex))
+        response_content_length = std::stoi(match[1]);
     }
 
-    // Extract body content
-    std::string body(boost::asio::buffers_begin(response.data()), boost::asio::buffers_end(response.data()));
-    response.consume(response.size());
+    // Get body response using the length indicated by the content-length. Or read all, if header was not present.
+    if( response_content_length != -1 ) {
+        response_content_length -= response.size();
+        if( response_content_length > 0 )
+          boost::asio::read(socket, response, boost::asio::transfer_exactly(response_content_length));
+    } else {
+        boost::system::error_code ec;
+        boost::asio::read(socket, response, boost::asio::transfer_all(), ec);
+        if (ec) {
+          std::cerr << "Unable to read HTTP response: " << ec.message() << std::endl;
+        }
+    }
+
+    std::stringstream re;
+    re << &response;
     // Close connection
     socket.close();
 
+    result.body = re.str();
+
     const auto end_time_point = std::chrono::steady_clock::now();
     result.total_time_duration = end_time_point - start_time_point;
-
-    result.body = std::move(body);
 
     std::cout << "Response: " << result.http_version << " " << std::to_string(result.status_code) << " " << result.status_message << std::endl;
     std::cout << "Total duration: " << result.total_time_duration << std::endl;
@@ -229,10 +248,10 @@ int main(int argc, char* argv[])
   }
 
   // Repeat the requests x times in parallel using threads
-  int repeat_thread_count = 1;
+  int repeat_thread_count = 4;
   // Repat the requests inside the thread again with x times
   // So a total of: repeat_thread_count * repeat_requests_count
-  int repeat_requests_count = 4;
+  int repeat_requests_count = 180;
 
   // Perform parallel HTTP requests using C++ Threads
   std::vector<std::thread> threads;
