@@ -104,21 +104,25 @@ boost::asio::awaitable<HttpResponse> async_http_call(boost::asio::io_context& io
         result.headers.emplace_back(std::move(header_name), std::move(header_value));
       }
       std::smatch match;
-      if(std::regex_search(header_line, match, clregex))
+      if (std::regex_search(header_line, match, clregex))
         response_content_length = std::stoi(match[1]);
     }
 
     // Get body response using the length indicated by the content-length. Or read all, if header was not present.
-    if( response_content_length != -1 ) {
-        response_content_length -= response.size();
-        if( response_content_length > 0 )
-          boost::asio::read(socket, response, boost::asio::transfer_exactly(response_content_length));
-    } else {
-        boost::system::error_code ec;
-        boost::asio::read(socket, response, boost::asio::transfer_all(), ec);
-        if (ec) {
-          std::cerr << "Unable to read HTTP response: " << ec.message() << std::endl;
-        }
+    if (response_content_length != -1)
+    {
+      response_content_length -= response.size();
+      if (response_content_length > 0)
+        boost::asio::read(socket, response, boost::asio::transfer_exactly(response_content_length));
+    }
+    else
+    {
+      boost::system::error_code ec;
+      boost::asio::read(socket, response, boost::asio::transfer_all(), ec);
+      if (ec)
+      {
+        std::cerr << "Unable to read HTTP response: " << ec.message() << std::endl;
+      }
     }
 
     std::stringstream re;
