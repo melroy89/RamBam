@@ -26,7 +26,7 @@ struct HttpResponse
 };
 
 boost::asio::awaitable<HttpResponse> async_http_call(boost::asio::io_context& io_context,
-                                                     const std::string& protocol,
+                                                     boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,
                                                      const std::string& host,
                                                      const std::string& port,
                                                      const std::string& pathParams,
@@ -36,16 +36,14 @@ boost::asio::awaitable<HttpResponse> async_http_call(boost::asio::io_context& io
 
   try
   {
+    boost::asio::streambuf request;
+
+    // Start time measurement
     const auto start_time_point = std::chrono::steady_clock::now();
-    // Resolve the server hostname and service
-    boost::asio::ip::tcp::resolver resolver(io_context);
-    boost::asio::ip::tcp::resolver::query query(host, protocol);
-    auto endpoint_iterator = co_await resolver.async_resolve(query, boost::asio::use_awaitable);
 
     // Create and connect the socket
     boost::asio::ip::tcp::socket socket(io_context);
-    co_await boost::asio::async_connect(socket, endpoint_iterator, boost::asio::use_awaitable);
-    boost::asio::streambuf request;
+    boost::asio::connect(socket, endpoint_iterator);
 
     // Compose the HTTP request
     std::ostream request_stream(&request);
@@ -78,12 +76,12 @@ boost::asio::awaitable<HttpResponse> async_http_call(boost::asio::io_context& io
     }
 
     // Send the HTTP request
-    co_await boost::asio::async_write(socket, request, boost::asio::use_awaitable);
+    boost::asio::write(socket, request);
 
     // Read and print the HTTP response
     boost::asio::streambuf response;
-    // Get till all the headers
-    co_await boost::asio::async_read_until(socket, response, "\r\n\r\n", boost::asio::use_awaitable);
+    // Get till all the headers, can we improve the performance of this call?
+    boost::asio::read_until(socket, response, "\r\n\r\n");
 
     std::istream response_stream(&response);
     response_stream >> result.http_version;
@@ -144,11 +142,16 @@ void spawn_http_requests(int repeat_requests_count, const std::string& url, cons
     if (boost::regex_split(std::back_inserter(parsed_url), url_copy, expression))
     {
       boost::asio::io_context io;
+      boost::asio::ip::tcp::resolver resolver(io);
+      // Resolve the server hostname and service
+      boost::asio::ip::tcp::resolver::query query(parsed_url[1], parsed_url[0]);
+      boost::asio::ip::tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
+
       for (int i = 0; i < repeat_requests_count; ++i)
       {
         boost::asio::co_spawn(io,
-                              async_http_call(io, std::move(parsed_url[0]), std::move(parsed_url[1]), std::move(parsed_url[2]),
-                                              std::move(parsed_url[3]), std::move(post_data)),
+                              async_http_call(io, endpoint_iterator, std::move(parsed_url[1]), std::move(parsed_url[2]), std::move(parsed_url[3]),
+                                              std::move(post_data)),
                               boost::asio::detached);
       }
       // Run the tasks concurrently
@@ -229,7 +232,7 @@ int main(int argc, char* argv[])
   int repeat_thread_count = 1;
   // Repat the requests inside the thread again with x times
   // So a total of: repeat_thread_count * repeat_requests_count
-  int repeat_requests_count = 3;
+  int repeat_requests_count = 4;
 
   // Perform parallel HTTP requests using C++ Threads
   std::vector<std::thread> threads;
