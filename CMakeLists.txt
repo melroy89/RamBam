@@ -29,10 +29,15 @@ configure_file(
   "${PROJECT_BINARY_DIR}/project_config.h")
 
 set(HEADERS
+  include/thread.h
+  include/http_client.h
+  include/http_response_struct.h
 )
 
 set(SOURCES
   src/main.cc
+  src/thread.cc
+  src/http_client.cc
   ${HEADERS}
 )
 
