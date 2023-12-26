@@ -9,10 +9,19 @@
 #include "reply_struct.h"
 #include "result_response_struct.h"
 
+/**
+ * \class HTTPClient
+ */
 class HttpClient
 {
 public:
-  explicit HttpClient(int repeat_requests_count, const std::string& url, const std::string& post_data = "");
+  explicit HttpClient(int repeat_requests_count,
+                      const std::string& url,
+                      const std::string& post_data = "",
+                      long ssl_options = (boost::asio::ssl::context::default_workarounds | boost::asio::ssl::context::no_sslv2 |
+                                          boost::asio::ssl::context::no_sslv3 | boost::asio::ssl::context::no_tlsv1 |
+                                          boost::asio::ssl::context::no_tlsv1_1),
+                      bool verify_peer = true);
   virtual ~HttpClient();
 
   void spawn_http_requests() const;
@@ -21,6 +30,8 @@ private:
   int repeat_requests_count_;
   std::string url_;
   std::string post_data_;
+  long ssl_options_;
+  bool verify_peer_;
 
   boost::asio::awaitable<ResultResponse> async_http_call(boost::asio::io_context& io_context,
                                                          boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,

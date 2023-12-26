@@ -18,12 +18,19 @@
 using namespace std::chrono_literals;
 
 /**
+ * More detailed implementation, see:
+ * https://github.com/cpp-netlib/cpp-netlib/blob/552ce94bd91c055f11ba524adf0ca0712063d711/boost/network/protocol/http/client/connection/ssl_delegate.ipp
+ */
+
+/**
  * \brief Constructor
  */
-HttpClient::HttpClient(int repeat_requests_count, const std::string& url, const std::string& post_data)
+HttpClient::HttpClient(int repeat_requests_count, const std::string& url, const std::string& post_data, long ssl_options, bool verify_peer)
     : repeat_requests_count_(repeat_requests_count),
       url_(url),
-      post_data_(post_data)
+      post_data_(post_data),
+      ssl_options_(ssl_options),
+      verify_peer_(verify_peer)
 {
 }
 
@@ -144,11 +151,19 @@ boost::asio::awaitable<ResultResponse> HttpClient::async_http_call(boost::asio::
     {
       // Create and connect the socket using the TLS protocol
       boost::asio::ssl::context tls_context(boost::asio::ssl::context::tlsv12_client); // What about v1.3 client?
-      // Only allow TLS v1.2 & v1.3
-      tls_context.set_options(boost::asio::ssl::context::default_workarounds | boost::asio::ssl::context::no_sslv2 |
-                              boost::asio::ssl::context::no_sslv3 | boost::asio::ssl::context::no_tlsv1 | boost::asio::ssl::context::no_tlsv1_1);
-      // Set default CA paths
-      tls_context.set_default_verify_paths();
+      // Only allow TLS v1.2 & v1.3 by default
+      tls_context.set_options(ssl_options_);
+      if (verify_peer_)
+      {
+        // Verify TLS connection
+        // tls_context.set_verify_mode(boost::asio::ssl::verify_peer);
+        // Set default CA paths
+        tls_context.set_default_verify_paths();
+      }
+      else
+      {
+        tls_context.set_verify_mode(boost::asio::ssl::context::verify_none);
+      }
 
       boost::asio::ssl::stream<boost::asio::ip::tcp::socket> socket(io_context, tls_context);
       boost::asio::connect(socket.next_layer(), endpoint_iterator);
@@ -157,10 +172,11 @@ boost::asio::awaitable<ResultResponse> HttpClient::async_http_call(boost::asio::
       const auto end_socket_connect_time_point = std::chrono::steady_clock::now();
       socket_connect_time_duration = end_socket_connect_time_point - end_prepare_request_time_point;
 
-      // TODO: Verify TLS connection
-      // socket.set_verify_mode(boost::asio::ssl::verify_peer |
-      //                        boost::asio::ssl::verify_fail_if_no_peer_cert);
-      // Do we also want: set_verify_callback()?
+      // Verify the remote host's certificate.
+      if (verify_peer_)
+      {
+        socket.set_verify_callback(boost::asio::ssl::host_name_verification(host));
+      }
 
       // Perform TLS handshake
       socket.handshake(boost::asio::ssl::stream_base::client);

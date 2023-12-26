@@ -67,8 +67,8 @@ int main(int argc, char* argv[])
     auto result = options.parse(argc, argv);
     processArguments(result, options);
     // TODO: Assign argument to URL
-    //url = "https://melroy.org/";
-    url = "http://localhost/test/";
+    url = "https://melroy.org/";
+    //url = "http://localhost/test/";
   }
   catch (const cxxopts::exceptions::exception& error)
   {
@@ -81,7 +81,7 @@ int main(int argc, char* argv[])
   int repeat_thread_count = 1;
   // Repat the requests inside the thread again with x times
   // So a total of: repeat_thread_count * repeat_requests_count
-  int repeat_requests_count = 2;
+  int repeat_requests_count = 1;
 
   // Start threads, blocking call until all threads are finished
   Thread::start_threads(repeat_thread_count, repeat_requests_count, url);
