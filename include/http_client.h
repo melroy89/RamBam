@@ -1,12 +1,13 @@
 #pragma once
 
-#include "result_response_struct.h"
-
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/ssl/stream.hpp>
 #include <boost/asio/streambuf.hpp>
 #include <boost/asio/use_awaitable.hpp>
+
+#include "result_response_struct.h"
+#include "reply_struct.h"
 
 class HttpClient
 {
@@ -29,6 +30,8 @@ private:
                                                          const std::string& port,
                                                          const std::string& pathParams,
                                                          const std::string& post_data) const;
-  static ResultResponse http_request_response(boost::asio::ip::tcp::socket& socket, boost::asio::streambuf& request);
-  static ResultResponse https_request_response(boost::asio::ssl::stream<boost::asio::ip::tcp::socket>& socket, boost::asio::streambuf& request);
+  template<typename SyncReadStream>
+  static ResultResponse handle_request(SyncReadStream& socket, boost::asio::streambuf& request);
+  template<typename SyncReadStream>
+  static Reply parse_response(SyncReadStream& socket);
 };

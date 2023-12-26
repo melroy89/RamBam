@@ -31,6 +31,7 @@ configure_file(
 set(HEADERS
   include/thread.h
   include/http_client.h
+  include/reply_struct.h
   include/duration_struct.h
   include/result_response_struct.h
 )

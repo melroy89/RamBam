@@ -92,9 +92,8 @@ boost::asio::awaitable<ResultResponse> HttpClient::async_http_call(boost::asio::
 
   try
   {
-
-    boost::asio::streambuf request;
     // Prepare HTTP request
+    boost::asio::streambuf request;
     std::ostream request_stream(&request);
     // We should also support: DELETE, PUT, PATCH
     if (empty(post_data))
@@ -138,7 +137,8 @@ boost::asio::awaitable<ResultResponse> HttpClient::async_http_call(boost::asio::
       boost::asio::connect(socket, endpoint_iterator);
       const auto end_socket_connect_time_point = std::chrono::steady_clock::now();
       socket_connect_time_duration = end_socket_connect_time_point - end_prepare_request_time_point;
-      result = http_request_response(socket, request);
+      result = HttpClient::handle_request(socket, request);
+      socket.close();
     }
     else if (protocol.compare("https") == 0)
     {
@@ -167,7 +167,8 @@ boost::asio::awaitable<ResultResponse> HttpClient::async_http_call(boost::asio::
       const auto end_handshake_time_point = std::chrono::steady_clock::now();
       handshake_time_duration = end_handshake_time_point - end_socket_connect_time_point;
 
-      result = https_request_response(socket, request);
+      result = HttpClient::handle_request(socket, request);
+      socket.next_layer().close();
     }
     else
     {
@@ -185,13 +186,13 @@ boost::asio::awaitable<ResultResponse> HttpClient::async_http_call(boost::asio::
     // Total with DNS time (altough it's only done once per thread)
     result.duration.total = result.duration.total_without_dns + result.duration.dns;
 
-    std::cout << "Response: " << result.http_version << " " << std::to_string(result.status_code) << " " << result.status_message << std::endl;
+    std::cout << "Response: " << result.reply.http_version << " " << std::to_string(result.reply.status_code) << " " << result.reply.status_message << std::endl;
     std::cout << "Total duration: " << result.duration.total_without_dns << " (prepare: " << result.duration.prepare_request
               << ", socket connect: " << result.duration.connect << ", handshake: " << result.duration.handshake
               << ", request: " << result.duration.request << ", response: " << result.duration.response << ")" << std::endl;
-    std::cout << "Body Content:\n" << result.body << std::endl;
+    std::cout << "Body Content:\n" << result.reply.body << std::endl;
     std::cout << "Headers:\n" << std::endl;
-    for (const auto& header : result.headers)
+    for (const auto& header : result.reply.headers)
     {
       std::cout << "Name: " << header.first << " Value: " << header.second << std::endl;
     }
@@ -204,106 +205,50 @@ boost::asio::awaitable<ResultResponse> HttpClient::async_http_call(boost::asio::
 }
 
 /**
- * Plain HTTP Request helper method
+ * \brief Handle HTTP(s) request
+ * \param[in] socket Socket connection
+ * \param[in] request Request data
  */
-ResultResponse HttpClient::http_request_response(boost::asio::ip::tcp::socket& socket, boost::asio::streambuf& request)
+template<typename SyncReadStream>
+ResultResponse HttpClient::handle_request(SyncReadStream& socket, boost::asio::streambuf& request)
 {
   ResultResponse result;
-  boost::asio::streambuf response;
 
-  const auto start_request_time_point = std::chrono::steady_clock::now();
-  // Send the HTTP request
+  const auto start_request_time_point = std::chrono::steady_clock::now();  
   boost::asio::write(socket, request);
 
   // Note: End _request_ time point is now also the start of the _response_ time point
   const auto end_request_time_point = std::chrono::steady_clock::now();
   result.duration.request = end_request_time_point - start_request_time_point;
 
-  // Read until the status line.
-  boost::asio::read_until(socket, response, "\r\n");
-
-  // Read the HTTP response
-  // TODO: Reuse as much code as possible (also for the https method)
-  std::istream response_stream(&response);
-  response_stream >> result.http_version;
-  response_stream >> result.status_code;
-  std::getline(response_stream, result.status_message);
-
-  // Get till all the headers, can we improve the performance of this call?
-  boost::asio::read_until(socket, response, "\r\n\r\n");
-  // Extract headers
-  std::string header_line;
-  int response_content_length = -1;
-  std::regex clregex(R"xx(^content-length:\s+(\d+))xx", std::regex_constants::icase);
-  while (std::getline(response_stream, header_line) && header_line != "\r")
-  {
-    size_t colon_pos = header_line.find(':');
-    if (colon_pos != std::string::npos)
-    {
-      std::string header_name = header_line.substr(0, colon_pos);
-      std::string header_value = header_line.substr(colon_pos + 2); // Skip ': ' after colon
-      result.headers.emplace_back(std::move(header_name), std::move(header_value));
-    }
-    std::smatch match;
-    if (std::regex_search(header_line, match, clregex))
-      response_content_length = std::stoi(match[1]);
-  }
-
-  // Get body response using the length indicated by the content-length. Or read all, if header was not present.
-  if (response_content_length != -1)
-  {
-    response_content_length -= response.size();
-    if (response_content_length > 0)
-      boost::asio::read(socket, response, boost::asio::transfer_exactly(response_content_length));
-  }
-  else
-  {
-    boost::system::error_code ec;
-    boost::asio::read(socket, response, boost::asio::transfer_all(), ec);
-    if (ec)
-    {
-      std::cerr << "Error: Unable to read HTTP response: " << ec.message() << std::endl;
-    }
-  }
-
-  std::stringstream re;
-  re << &response;
-  result.body = re.str();
+  result.reply = HttpClient::parse_response(socket);
 
   const auto end_response_time_point = std::chrono::steady_clock::now();
   result.duration.response = end_response_time_point - end_request_time_point;
-
-  socket.close();
 
   return result;
 }
 
 /**
- * Encrypted HTTPS Request helper method
- */
-ResultResponse HttpClient::https_request_response(boost::asio::ssl::stream<boost::asio::ip::tcp::socket>& socket, boost::asio::streambuf& request)
+* \brief Parse response: HTTP status, headers and body
+* \param[in] socket Socket connection
+*/
+template<typename SyncReadStream>
+Reply HttpClient::parse_response(SyncReadStream& socket)
 {
-  ResultResponse result;
+  Reply reply;
   boost::asio::streambuf response;
 
-  const auto start_request_time_point = std::chrono::steady_clock::now();
-  // Send the HTTP request
-  boost::asio::write(socket, request);
-
-  // Note: End _request_ time point is now also the start of the _response_ time point
-  const auto end_request_time_point = std::chrono::steady_clock::now();
-  result.duration.request = end_request_time_point - start_request_time_point;
-
-  // Read until the status line.
+  // Read until the status line
   boost::asio::read_until(socket, response, "\r\n");
 
-  // Read the HTTP response
+  // Get HTTP Status lines
   std::istream response_stream(&response);
-  response_stream >> result.http_version;
-  response_stream >> result.status_code;
-  std::getline(response_stream, result.status_message);
+  response_stream >> reply.http_version;
+  response_stream >> reply.status_code;
+  std::getline(response_stream, reply.status_message);
 
-  // Get till all the headers, can we improve the performance of this call?
+ // Get till all the headers, can we improve the performance of this call?
   boost::asio::read_until(socket, response, "\r\n\r\n");
   // Extract headers
   std::string header_line;
@@ -316,7 +261,7 @@ ResultResponse HttpClient::https_request_response(boost::asio::ssl::stream<boost
     {
       std::string header_name = header_line.substr(0, colon_pos);
       std::string header_value = header_line.substr(colon_pos + 2); // Skip ': ' after colon
-      result.headers.emplace_back(std::move(header_name), std::move(header_value));
+      reply.headers.emplace_back(std::move(header_name), std::move(header_value));
     }
     std::smatch match;
     if (std::regex_search(header_line, match, clregex))
@@ -342,13 +287,7 @@ ResultResponse HttpClient::https_request_response(boost::asio::ssl::stream<boost
 
   std::stringstream re;
   re << &response;
+  reply.body = re.str();
 
-  result.body = re.str();
-
-  const auto end_response_time_point = std::chrono::steady_clock::now();
-  result.duration.response = end_response_time_point - end_request_time_point;
-
-  socket.next_layer().close();
-
-  return result;
+  return reply;
 }
