@@ -186,7 +186,8 @@ boost::asio::awaitable<ResultResponse> HttpClient::async_http_call(boost::asio::
     // Total with DNS time (altough it's only done once per thread)
     result.duration.total = result.duration.total_without_dns + result.duration.dns;
 
-    std::cout << "Response: " << result.reply.http_version << " " << std::to_string(result.reply.status_code) << " " << result.reply.status_message << std::endl;
+    std::cout << "Response: " << result.reply.http_version << " " << std::to_string(result.reply.status_code) << " " << result.reply.status_message
+              << std::endl;
     std::cout << "Total duration: " << result.duration.total_without_dns << " (prepare: " << result.duration.prepare_request
               << ", socket connect: " << result.duration.connect << ", handshake: " << result.duration.handshake
               << ", request: " << result.duration.request << ", response: " << result.duration.response << ")" << std::endl;
@@ -209,12 +210,11 @@ boost::asio::awaitable<ResultResponse> HttpClient::async_http_call(boost::asio::
  * \param[in] socket Socket connection
  * \param[in] request Request data
  */
-template<typename SyncReadStream>
-ResultResponse HttpClient::handle_request(SyncReadStream& socket, boost::asio::streambuf& request)
+template <typename SyncReadStream> ResultResponse HttpClient::handle_request(SyncReadStream& socket, boost::asio::streambuf& request)
 {
   ResultResponse result;
 
-  const auto start_request_time_point = std::chrono::steady_clock::now();  
+  const auto start_request_time_point = std::chrono::steady_clock::now();
   boost::asio::write(socket, request);
 
   // Note: End _request_ time point is now also the start of the _response_ time point
@@ -230,11 +230,10 @@ ResultResponse HttpClient::handle_request(SyncReadStream& socket, boost::asio::s
 }
 
 /**
-* \brief Parse response: HTTP status, headers and body
-* \param[in] socket Socket connection
-*/
-template<typename SyncReadStream>
-Reply HttpClient::parse_response(SyncReadStream& socket)
+ * \brief Parse response: HTTP status, headers and body
+ * \param[in] socket Socket connection
+ */
+template <typename SyncReadStream> Reply HttpClient::parse_response(SyncReadStream& socket)
 {
   Reply reply;
   boost::asio::streambuf response;
@@ -248,7 +247,7 @@ Reply HttpClient::parse_response(SyncReadStream& socket)
   response_stream >> reply.status_code;
   std::getline(response_stream, reply.status_message);
 
- // Get till all the headers, can we improve the performance of this call?
+  // Get till all the headers, can we improve the performance of this call?
   boost::asio::read_until(socket, response, "\r\n\r\n");
   // Extract headers
   std::string header_line;

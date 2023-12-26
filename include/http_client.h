@@ -6,8 +6,8 @@
 #include <boost/asio/streambuf.hpp>
 #include <boost/asio/use_awaitable.hpp>
 
-#include "result_response_struct.h"
 #include "reply_struct.h"
+#include "result_response_struct.h"
 
 class HttpClient
 {
@@ -30,8 +30,6 @@ private:
                                                          const std::string& port,
                                                          const std::string& pathParams,
                                                          const std::string& post_data) const;
-  template<typename SyncReadStream>
-  static ResultResponse handle_request(SyncReadStream& socket, boost::asio::streambuf& request);
-  template<typename SyncReadStream>
-  static Reply parse_response(SyncReadStream& socket);
+  template <typename SyncReadStream> static ResultResponse handle_request(SyncReadStream& socket, boost::asio::streambuf& request);
+  template <typename SyncReadStream> static Reply parse_response(SyncReadStream& socket);
 };
