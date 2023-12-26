@@ -13,6 +13,7 @@ I didn't create a release yet (it's still in development), but if you are using 
 
 - C++ Compiler (`sudo apt install build-essential` for GNU compiler, _Clang is **also** supported_)
 - CMake (`sudo apt install cmake`)
+- OpenSSL
 - Ninja build system (optional, but **recommended**: `sudo apt install ninja-build`)
 - Ccache (optional, but much **recommended**: `sudo apt install ccache`)
 

@@ -67,6 +67,10 @@ int main(int argc, char* argv[])
     auto result = options.parse(argc, argv);
     processArguments(result, options);
     // TODO: Assign argument to URL
+    // TODO: Support TLS requests: https://github.com/electroneum/electroneum/blob/master/contrib/epee/src/net_ssl.cpp#L283
+    // See also: https://github.com/Icinga/icinga2/blob/master/lib/base/tlsutility.cpp and https://github.com/NewCapital/catapult-server/blob/8d5be02a823d98dba6610f7183bd08f4f2d331d5/tools/ssl/SslClient.cpp#L41
+    // or: https://github.com/rapp-project/rapp-api/blob/e842401e1a83754a51874b996646355e627a9b18/cpp/includes/cloud/asio_socket_https/asio_socket_https.cpp#L36
+    //url = "https://melroy.org/";
     url = "http://localhost/test/";
   }
   catch (const cxxopts::exceptions::exception& error)
@@ -80,7 +84,7 @@ int main(int argc, char* argv[])
   int repeat_thread_count = 1;
   // Repat the requests inside the thread again with x times
   // So a total of: repeat_thread_count * repeat_requests_count
-  int repeat_requests_count = 1;
+  int repeat_requests_count = 2;
 
   // Start threads, blocking call until all threads are finished
   Thread::start_threads(repeat_thread_count, repeat_requests_count, url);

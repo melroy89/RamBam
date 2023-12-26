@@ -31,7 +31,8 @@ configure_file(
 set(HEADERS
   include/thread.h
   include/http_client.h
-  include/http_response_struct.h
+  include/duration_struct.h
+  include/result_response_struct.h
 )
 
 set(SOURCES
@@ -47,6 +48,8 @@ add_executable(${PROJECT_TARGET} ${SOURCES})
 # Set C++20
 target_compile_features(${PROJECT_TARGET} PUBLIC cxx_std_20)
 set_target_properties(${PROJECT_TARGET} PROPERTIES CXX_EXTENSIONS OFF)
+
+find_package(OpenSSL REQUIRED)
 
 include(FetchContent)
 
@@ -74,6 +77,6 @@ set(CXXOPTS_ENABLE_WARNINGS OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(cxxopts)
 
 # Link CXXOPTS
-target_link_libraries(${PROJECT_TARGET} cxxopts Boost::asio)
+target_link_libraries(${PROJECT_TARGET} cxxopts Boost::asio OpenSSL::Crypto OpenSSL::SSL)
 
 target_include_directories(${PROJECT_TARGET} PRIVATE ${PROJECT_SOURCE_DIR}/include ${PROJECT_BINARY_DIR})
