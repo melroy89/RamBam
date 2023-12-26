@@ -30,7 +30,7 @@ configure_file(
 
 set(HEADERS
   include/thread.h
-  include/http_client.h
+  include/client.h
   include/reply_struct.h
   include/duration_struct.h
   include/result_response_struct.h
@@ -39,7 +39,7 @@ set(HEADERS
 set(SOURCES
   src/main.cc
   src/thread.cc
-  src/http_client.cc
+  src/client.cc
   ${HEADERS}
 )
 

@@ -1,6 +1,6 @@
 #include <thread>
 
-#include "http_client.h"
+#include "client.h"
 #include "thread.h"
 
 void Thread::start_threads(int repeat_thread_count, int repeat_requests_count, const std::string& url, const std::string& post_data)
@@ -10,15 +10,15 @@ void Thread::start_threads(int repeat_thread_count, int repeat_requests_count, c
   threads.reserve(repeat_thread_count);
 
   // Create HTTP Client object
-  HttpClient httpClient(repeat_requests_count, url, post_data);
+  Client client(repeat_requests_count, url, post_data);
   // Create multiple threads
   for (int i = 0; i < repeat_thread_count; ++i)
   {
     threads.emplace_back(
-        [httpClient]()
+        [client]()
         {
           // Perform multiple HTTP requests using Asio co_spawn, within the current thread
-          httpClient.spawn_http_requests();
+          client.spawn_requests();
         });
   }
 

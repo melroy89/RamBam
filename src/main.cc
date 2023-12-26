@@ -67,7 +67,7 @@ int main(int argc, char* argv[])
     auto result = options.parse(argc, argv);
     processArguments(result, options);
     // TODO: Assign argument to URL
-    url = "https://melroy.org/";
+    url = "https://www.google.com/";
     //url = "http://localhost/test/";
   }
   catch (const cxxopts::exceptions::exception& error)
