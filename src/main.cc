@@ -33,8 +33,9 @@ Settings processArguments(const cxxopts::ParseResult& result, cxxopts::Options& 
   settings.repeat_requests_count = result["request-count"].as<int>();
   settings.disable_peer_verification = result["disable-peer-verify"].as<bool>();
   settings.override_verify_tls = result["override-verify-tls"].as<bool>();
-  settings.debug = result["debug"].as<bool>();
+  settings.verbose = result["verbose"].as<bool>();
   settings.silent = result["silent"].as<bool>();
+  settings.debug = result["debug"].as<bool>();
 
   // TODO: will be mandatory
   // if (!result.count("urls"))
@@ -46,17 +47,26 @@ Settings processArguments(const cxxopts::ParseResult& result, cxxopts::Options& 
 
   if (result.count("urls"))
   {
-    for (const auto& url : result["urls"].as<std::vector<std::string>>())
+    for (const std::string& url : result["urls"].as<std::vector<std::string>>())
     {
-      // TODO: ...
-      std::cout << "URL: " << url << std::endl;
+      // TODO: ... support multiple URLs
+      if (url.compare(0, 7, "http://") != 0 && url.compare(0, 8, "https://") != 0)
+      {
+        // Assume HTTPS
+        settings.url = "https://" + url;
+      }
+      else
+      {
+        settings.url = url;
+      }
+      break;
     }
   }
   else
   {
     // TODO: This is a manual override, will be removed in the future
-    settings.url = "https://melroy.org/";
-    // settings.url = "http://localhost/test/";
+    // settings.url = "https://melroy.org/";
+    settings.url = "http://localhost/test/";
   }
   return settings;
 }
@@ -69,14 +79,15 @@ int main(int argc, char* argv[])
   cxxopts::Options options("rambam", "Stress test your API or website");
   // clang-format off
   options.add_options()
-    ("s,silent", "Silent (no output)", cxxopts::value<bool>()->default_value("false"))    
-    ("t,thread-count", "Thread count", cxxopts::value<int>()->default_value("4"))
-    ("r,request-count", "Request count PER thread, meaning:\nTotal requests = thread count * request count", cxxopts::value<int>()->default_value("10"))
+    ("v,verbose", "Verbose (More output)", cxxopts::value<bool>()->default_value("false"))
+    ("s,silent", "Silent (No output)", cxxopts::value<bool>()->default_value("false"))
+    ("t,thread-count", "Thread count", cxxopts::value<int>()->default_value("2"))
+    ("r,request-count", "Request count PER thread, meaning:\nTotal requests = thread count * request count", cxxopts::value<int>()->default_value("5"))
     ("d,debug", "Enable debugging (eg. debug TLS)", cxxopts::value<bool>()->default_value("false"))
     ("p,disable-peer-verify", "Disable peer certificate verification", cxxopts::value<bool>()->default_value("false"))
     ("o,override-verify-tls", "Override TLS peer certificate verification", cxxopts::value<bool>()->default_value("false"))
     ("urls", "URL(s) under test (space separated)", cxxopts::value<std::vector<std::string>>())
-    ("v,version", "Show the version")
+    ("version", "Show the version")
     ("h,help", "Print usage");
   // clang-format on 
   options.positional_help("<URL(s)>");
@@ -90,7 +101,7 @@ int main(int argc, char* argv[])
     if (!settings.silent) {
       std::cout << "==========================================" << std::endl;
       std::cout << "URL under test: " << settings.url << std::endl;
-      std::cout << "Using total threads: " << settings.repeat_thread_count << std::endl;
+      std::cout << "Total threads: " << settings.repeat_thread_count << ", with requests per thread: " << settings.repeat_requests_count <<  std::endl ;
       std::cout << "==========================================" << std::endl;
     }
     // Start threads, blocking call until all threads are finished

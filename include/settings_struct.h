@@ -11,6 +11,7 @@ struct Settings
   std::string post_data;
   bool disable_peer_verification;
   bool override_verify_tls;
-  bool debug;
+  bool verbose;
   bool silent;
+  bool debug;
 };

@@ -19,6 +19,7 @@ public:
   explicit Client(int repeat_requests_count,
                   const std::string& url,
                   const std::string& post_data = "",
+                  bool verbose = false,
                   bool silent = false,
                   bool verify_peer = true,
                   bool override_verify_tls_ = false,
@@ -34,6 +35,7 @@ private:
   int repeat_requests_count_;
   std::string url_;
   std::string post_data_;
+  bool verbose_;
   bool silent_;
   bool verify_peer_;
   bool override_verify_tls_;

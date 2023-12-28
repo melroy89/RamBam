@@ -32,6 +32,7 @@ using namespace std::chrono_literals;
 Client::Client(int repeat_requests_count,
                const std::string& url,
                const std::string& post_data,
+               bool verbose,
                bool silent,
                bool verify_peer,
                bool override_verify_tls,
@@ -40,6 +41,7 @@ Client::Client(int repeat_requests_count,
     : repeat_requests_count_(repeat_requests_count),
       url_(url),
       post_data_(post_data),
+      verbose_(verbose),
       silent_(silent),
       verify_peer_(verify_peer),
       override_verify_tls_(override_verify_tls),
@@ -59,15 +61,14 @@ void Client::spawn_requests() const
 {
   try
   {
-    std::vector<std::string> parsed_url;
     boost::regex expression(
         //   proto             host                 port     rest
         "(\?:([^:/\?#]+)://)\?(\\w+[^/\?#:]*)(\?::(\\d+))*(?:)(.*)");
-    // Make a const copy of the URL
-    std::string url_copy(url_);
-    boost::algorithm::trim(url_copy);
-    // TODO: Move to regex_token_iterator()
-    if (boost::regex_split(std::back_inserter(parsed_url), url_copy, expression))
+    boost::sregex_token_iterator iter(url_.begin(), url_.end(), expression, {1, 2, 3, 4});
+    boost::sregex_token_iterator end;
+    std::vector<std::string> parsed_url(iter, end);
+
+    if (parsed_url.size() == 4)
     {
       const auto start_dns_lookup_time_point = std::chrono::steady_clock::now();
       boost::asio::io_context io;
@@ -78,9 +79,15 @@ void Client::spawn_requests() const
       const auto end_dns_lookup_time_point = std::chrono::steady_clock::now();
       std::chrono::duration<double, std::milli> dns_lookup_duration = end_dns_lookup_time_point - start_dns_lookup_time_point;
 
-      if (!silent_)
+      if (!silent_ && verbose_)
       {
         std::cout << "DNS lookup duration (once per thread): " << dns_lookup_duration << std::endl;
+      }
+
+      // If path is empty, then just set to '/'
+      if (parsed_url[3].empty())
+      {
+        parsed_url[3] = '/';
       }
 
       // Spawn multiple async http requests
@@ -93,6 +100,11 @@ void Client::spawn_requests() const
       }
       // Run the tasks concurrently
       io.run();
+    }
+    else
+    {
+      std::cerr << "Error: Could not parse the URL correctly. Exit!" << std::endl;
+      exit(1);
     }
   }
   catch (std::exception& e)
@@ -232,7 +244,7 @@ boost::asio::awaitable<ResultResponse> Client::async_request(boost::asio::io_con
     result.duration.total = result.duration.total_without_dns + result.duration.dns;
 
     // TODO: We return the result, print it outside of this method.
-    if (!silent_)
+    if (!silent_ && verbose_)
     {
       std::cout << "Response: " << result.reply.http_version << " " << std::to_string(result.reply.status_code) << " " << result.reply.status_message
                 << std::endl;
@@ -247,10 +259,19 @@ boost::asio::awaitable<ResultResponse> Client::async_request(boost::asio::io_con
       }
       std::cout << "------------------------------------------------------\n\r" << std::endl;
     }
+    else if (!silent_)
+    {
+      // TODO: Something is off with result.reply.status_message (hidden special chars?)
+      std::cout << "Response: " << std::to_string(result.reply.status_code) << " in " << result.duration.total_without_dns << std::endl;
+    }
+  }
+  catch (const boost::system::system_error& e)
+  {
+    std::cerr << "Error: Could not perform the HTTP(s) request: " << e.what() << std::endl;
   }
   catch (const std::exception& e)
   {
-    std::cerr << "Error, exception: " << e.what() << std::endl;
+    std::cerr << "Error: Something went wrong during the request: " << e.what() << std::endl;
   }
   co_return result;
 }

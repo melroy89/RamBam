@@ -10,8 +10,8 @@ void Thread::start_threads(const Settings& settings)
   threads.reserve(settings.repeat_thread_count);
 
   // Create HTTP Client object
-  Client client(settings.repeat_requests_count, settings.url, settings.post_data, settings.silent, !settings.disable_peer_verification,
-                settings.override_verify_tls, settings.debug);
+  Client client(settings.repeat_requests_count, settings.url, settings.post_data, settings.verbose, settings.silent,
+                !settings.disable_peer_verification, settings.override_verify_tls, settings.debug);
   // Create multiple threads
   for (int i = 0; i < settings.repeat_thread_count; ++i)
   {
