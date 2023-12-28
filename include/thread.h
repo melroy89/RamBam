@@ -1,9 +1,9 @@
 #pragma once
 
-#include <string>
+#include "settings_struct.h"
 
 class Thread
 {
 public:
-  static void start_threads(int repeat_thread_count, int repeat_requests_count, const std::string& url, const std::string& post_data = "");
+  static void start_threads(const Settings& settings);
 };

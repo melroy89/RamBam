@@ -8,6 +8,7 @@
 #include <boost/regex.hpp>
 #include <iostream>
 #include <iterator>
+#include <openssl/ssl.h>
 #include <regex>
 #include <string>
 #include <thread>
@@ -28,12 +29,22 @@ using namespace std::chrono_literals;
 /**
  * \brief HTTP Client Constructor
  */
-Client::Client(int repeat_requests_count, const std::string& url, const std::string& post_data, long ssl_options, bool verify_peer)
+Client::Client(int repeat_requests_count,
+               const std::string& url,
+               const std::string& post_data,
+               bool silent,
+               bool verify_peer,
+               bool override_verify_tls,
+               bool debug_verify_tls,
+               long ssl_options)
     : repeat_requests_count_(repeat_requests_count),
       url_(url),
       post_data_(post_data),
-      ssl_options_(ssl_options),
-      verify_peer_(verify_peer)
+      silent_(silent),
+      verify_peer_(verify_peer),
+      override_verify_tls_(override_verify_tls),
+      debug_verify_tls_(debug_verify_tls),
+      ssl_options_(ssl_options)
 {
 }
 
@@ -67,14 +78,17 @@ void Client::spawn_requests() const
       const auto end_dns_lookup_time_point = std::chrono::steady_clock::now();
       std::chrono::duration<double, std::milli> dns_lookup_duration = end_dns_lookup_time_point - start_dns_lookup_time_point;
 
-      std::cout << "DNS lookup duration (once per thread): " << dns_lookup_duration << std::endl;
+      if (!silent_)
+      {
+        std::cout << "DNS lookup duration (once per thread): " << dns_lookup_duration << std::endl;
+      }
 
       // Spawn multiple async http requests
       for (int i = 0; i < repeat_requests_count_; ++i)
       {
         boost::asio::co_spawn(io,
-                              this->async_http_call(io, endpoint_iterator, dns_lookup_duration, std::move(parsed_url[0]), std::move(parsed_url[1]),
-                                                    std::move(parsed_url[2]), std::move(parsed_url[3]), std::move(post_data_)),
+                              this->async_request(io, endpoint_iterator, dns_lookup_duration, std::move(parsed_url[0]), std::move(parsed_url[1]),
+                                                  std::move(parsed_url[2]), std::move(parsed_url[3]), std::move(post_data_)),
                               boost::asio::detached);
       }
       // Run the tasks concurrently
@@ -87,14 +101,14 @@ void Client::spawn_requests() const
   }
 }
 
-boost::asio::awaitable<ResultResponse> Client::async_http_call(boost::asio::io_context& io_context,
-                                                               boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,
-                                                               const std::chrono::duration<double, std::milli>& dns_lookup_duration,
-                                                               const std::string& protocol,
-                                                               const std::string& host,
-                                                               const std::string& port,
-                                                               const std::string& pathParams,
-                                                               const std::string& post_data) const
+boost::asio::awaitable<ResultResponse> Client::async_request(boost::asio::io_context& io_context,
+                                                             boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,
+                                                             const std::chrono::duration<double, std::milli>& dns_lookup_duration,
+                                                             const std::string& protocol,
+                                                             const std::string& host,
+                                                             const std::string& port,
+                                                             const std::string& pathParams,
+                                                             const std::string& post_data) const
 {
   // Start time measurement
   const auto start_prepare_request_time_point = std::chrono::steady_clock::now();
@@ -108,11 +122,11 @@ boost::asio::awaitable<ResultResponse> Client::async_http_call(boost::asio::io_c
     // We should also support: DELETE, PUT, PATCH
     if (empty(post_data))
     {
-      request_stream << "GET " + pathParams + " HTTP/1.1\r\n";
+      request_stream << "GET " + pathParams + " HTTP/1.0\r\n";
     }
     else
     {
-      request_stream << "POST " + pathParams + " HTTP/1.1\r\n";
+      request_stream << "POST " + pathParams + " HTTP/1.0\r\n";
     }
     std::string hostname(host);
     if (!empty(port))
@@ -153,9 +167,12 @@ boost::asio::awaitable<ResultResponse> Client::async_http_call(boost::asio::io_c
     else if (protocol.compare("https") == 0)
     {
       // Create and connect the socket using the TLS protocol
-      boost::asio::ssl::context tls_context(boost::asio::ssl::context::tlsv12_client); // What about v1.3 client?
+      // TODO: Give the user more control about the context, like tlsv1.2 maybe?
+      boost::asio::ssl::context tls_context(boost::asio::ssl::context::tlsv13_client);
       // Only allow TLS v1.2 & v1.3 by default
       tls_context.set_options(ssl_options_);
+
+      // Verify TLS connection by default
       if (verify_peer_)
       {
         // Verify TLS connection
@@ -163,9 +180,16 @@ boost::asio::awaitable<ResultResponse> Client::async_http_call(boost::asio::io_c
         // Set default CA paths
         tls_context.set_default_verify_paths();
 
-        // Verify the remote host's certificate.
-        // socket.set_verify_callback(boost::asio::ssl::host_name_verification(host));
-        tls_context.set_verify_callback(boost::bind(&Client::verify_certificate_callback, this, boost::placeholders::_1, boost::placeholders::_2));
+        // Verify the remote host's certificate
+        if (debug_verify_tls_)
+        {
+          tls_context.set_verify_callback(boost::bind(&Client::verify_certificate_callback, this, boost::placeholders::_1, boost::placeholders::_2));
+        }
+        else
+        {
+          // By default use the built-in host_name_verification()
+          tls_context.set_verify_callback(boost::asio::ssl::host_name_verification(host));
+        }
       }
       else
       {
@@ -173,6 +197,10 @@ boost::asio::awaitable<ResultResponse> Client::async_http_call(boost::asio::io_c
       }
 
       boost::asio::ssl::stream<boost::asio::ip::tcp::socket> socket(io_context, tls_context);
+
+      // Set SNI
+      SSL_set_tlsext_host_name(socket.native_handle(), host.c_str());
+
       boost::asio::connect(socket.next_layer(), endpoint_iterator);
 
       // Note: end of socket connect time point is the start of the handshake time point
@@ -203,16 +231,21 @@ boost::asio::awaitable<ResultResponse> Client::async_http_call(boost::asio::io_c
     // Total with DNS time (altough it's only done once per thread)
     result.duration.total = result.duration.total_without_dns + result.duration.dns;
 
-    std::cout << "Response: " << result.reply.http_version << " " << std::to_string(result.reply.status_code) << " " << result.reply.status_message
-              << std::endl;
-    std::cout << "Total duration: " << result.duration.total_without_dns << " (prepare: " << result.duration.prepare_request
-              << ", socket connect: " << result.duration.connect << ", handshake: " << result.duration.handshake
-              << ", request: " << result.duration.request << ", response: " << result.duration.response << ")" << std::endl;
-    std::cout << "Body Content:\n" << result.reply.body << std::endl;
-    std::cout << "\n\r\n\rHeaders:\n" << std::endl;
-    for (const auto& header : result.reply.headers)
+    // TODO: We return the result, print it outside of this method.
+    if (!silent_)
     {
-      std::cout << "Name: " << header.first << " Value: " << header.second << std::endl;
+      std::cout << "Response: " << result.reply.http_version << " " << std::to_string(result.reply.status_code) << " " << result.reply.status_message
+                << std::endl;
+      std::cout << "Total duration: " << result.duration.total_without_dns << " (prepare: " << result.duration.prepare_request
+                << ", socket connect: " << result.duration.connect << ", handshake: " << result.duration.handshake
+                << ", request: " << result.duration.request << ", response: " << result.duration.response << ")" << std::endl;
+      std::cout << "Body Content:\n" << result.reply.body << std::endl;
+      std::cout << "Headers:\n" << std::endl;
+      for (const auto& header : result.reply.headers)
+      {
+        std::cout << "Name: " << header.first << " Value: " << header.second << std::endl;
+      }
+      std::cout << "------------------------------------------------------\n\r" << std::endl;
     }
   }
   catch (const std::exception& e)
@@ -222,6 +255,9 @@ boost::asio::awaitable<ResultResponse> Client::async_http_call(boost::asio::io_c
   co_return result;
 }
 
+/**
+ * Debug certificate validation callback method
+ */
 bool Client::verify_certificate_callback(bool preverified, boost::asio::ssl::verify_context& context) const
 {
   X509_STORE_CTX* sctx = context.native_handle();
@@ -239,28 +275,22 @@ bool Client::verify_certificate_callback(bool preverified, boost::asio::ssl::ver
 
   BIO_free(subject_name_out);
 
-  std::cout << "Verifying subject '" << subject << "'." << std::endl;
-  bool override = false;
+  if (!silent_)
+    std::cout << "Verifying subject '" << subject << "'." << std::endl;
+
   int sctx_error = X509_STORE_CTX_get_error(sctx);
-  if (sctx_error != 0)
+  if (sctx_error != 0 && !silent_)
   {
     std::cout << "OpenSSL verify error: " << sctx_error << std::endl;
-
-    // Ignore error if verification is turned off in general or the error has
-    // been disabled specifically.
-    /*if (!ssl_options->verify_certificates() || ssl_options->ignore_verify_error(sctx_error))
-    {
-      std::cout << "Ignoring OpenSSL verify error: " << sctx_error << " because of user settings." << std::endl;
-      override = true;
-    }*/
   }
 
-  std::cout << "Verification of subject '" << subject << "' was " << (preverified ? "successful." : "unsuccessful.")
-            << ((!preverified && override) ? " Overriding because of user settings." : "") << std::endl;
+  if (!silent_)
+    std::cout << "Verification of subject '" << subject << "' was " << (preverified ? "successful." : "unsuccessful.")
+              << ((!preverified && override_verify_tls_) ? " Overriding because of user settings." : "") << std::endl;
 
   delete[] subject;
 
-  return preverified || override;
+  return preverified || override_verify_tls_;
 }
 
 /**
@@ -329,6 +359,11 @@ template <typename SyncReadStream> Reply Client::parse_response(SyncReadStream& 
       chunked = true;
   }
 
+  if (chunked)
+  {
+    std::cerr << "Error: We do not support chunked responses." << std::endl;
+  }
+
   // Get body response using the length indicated by the content-length. Or read all, if header was not present.
   if (response_content_length != -1)
   {
@@ -342,55 +377,18 @@ template <typename SyncReadStream> Reply Client::parse_response(SyncReadStream& 
   }
   else
   {
-    if (!chunked)
+    // Read all non-chunked data at once
+    boost::system::error_code error;
+    boost::asio::read(socket, response, boost::asio::transfer_all(), error);
+    // We also ignore stream truncated errors
+    if (error != boost::asio::error::eof && error != boost::asio::ssl::error::stream_truncated && error != boost::system::errc::success)
     {
-      // Read all non-chunked data
-      boost::system::error_code error;
-      boost::asio::read(socket, response, boost::asio::transfer_all(), error);
-      if (error != boost::asio::error::eof)
-      {
-        std::cerr << "Error: Error during reading HTTP response: " << error.message() << std::endl;
-      }
-
-      std::stringstream re;
-      re << &response;
-      reply.body = re.str();
+      std::cerr << "Error: Error during reading HTTP response: " << error.message() << std::endl;
     }
-    else
-    {
-      std::string body;
-      // HTTP 1.1 is allowed to return data in chunks
-      // TODO: Fix chunk reading.. It's not yet working and getting all chunk sizes and retrieving the data correctly
-      while (true)
-      {
-        size_t chunk_size;
-        // Read the chunk length
-        boost::asio::read_until(socket, response, "\r\n"); // Read '\r\n' sequence
-        response_stream >> std::hex >> chunk_size;
 
-        boost::asio::read_until(socket, response, "\r\n"); // Read '\r\n' sequence
-
-        std::cout << "CHUNK SIZE: " << chunk_size << std::endl;
-
-        // Read the chunk data
-        // boost::asio::streambuf chunk_data_buffer;
-        boost::system::error_code error;
-        boost::asio::read(socket, response, boost::asio::transfer_exactly(chunk_size), error);
-        if (error != boost::asio::error::eof && error != boost::asio::ssl::error::stream_truncated && error != boost::system::errc::success)
-        {
-          std::cerr << "Error: Error during reading HTTP response: " << error.message() << std::endl;
-        }
-
-        body.append(std::istreambuf_iterator<char>(&response), std::istreambuf_iterator<char>());
-
-        // Check for the last chunk
-        if (chunk_size == 0)
-        {
-          break;
-        }
-      }
-      reply.body = body;
-    }
+    std::stringstream re;
+    re << &response;
+    reply.body = re.str();
   }
 
   return reply;

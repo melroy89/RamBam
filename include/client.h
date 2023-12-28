@@ -19,10 +19,13 @@ public:
   explicit Client(int repeat_requests_count,
                   const std::string& url,
                   const std::string& post_data = "",
+                  bool silent = false,
+                  bool verify_peer = true,
+                  bool override_verify_tls_ = false,
+                  bool debug_verify_tls = false,
                   long ssl_options = (boost::asio::ssl::context::default_workarounds | boost::asio::ssl::context::no_sslv2 |
                                       boost::asio::ssl::context::no_sslv3 | boost::asio::ssl::context::no_tlsv1 |
-                                      boost::asio::ssl::context::no_tlsv1_1),
-                  bool verify_peer = true);
+                                      boost::asio::ssl::context::no_tlsv1_1));
   virtual ~Client();
 
   void spawn_requests() const;
@@ -31,19 +34,21 @@ private:
   int repeat_requests_count_;
   std::string url_;
   std::string post_data_;
-  long ssl_options_;
+  bool silent_;
   bool verify_peer_;
+  bool override_verify_tls_;
+  bool debug_verify_tls_;
+  long ssl_options_;
 
+  boost::asio::awaitable<ResultResponse> async_request(boost::asio::io_context& io_context,
+                                                       boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,
+                                                       const std::chrono::duration<double, std::milli>& dns_lookup_duration,
+                                                       const std::string& protocol,
+                                                       const std::string& host,
+                                                       const std::string& port,
+                                                       const std::string& pathParams,
+                                                       const std::string& post_data) const;
   bool verify_certificate_callback(bool preverified, boost::asio::ssl::verify_context& context) const;
-
-  boost::asio::awaitable<ResultResponse> async_http_call(boost::asio::io_context& io_context,
-                                                         boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,
-                                                         const std::chrono::duration<double, std::milli>& dns_lookup_duration,
-                                                         const std::string& protocol,
-                                                         const std::string& host,
-                                                         const std::string& port,
-                                                         const std::string& pathParams,
-                                                         const std::string& post_data) const;
   template <typename SyncReadStream> static ResultResponse handle_request(SyncReadStream& socket, boost::asio::streambuf& request);
   template <typename SyncReadStream> static Reply parse_response(SyncReadStream& socket);
 };
