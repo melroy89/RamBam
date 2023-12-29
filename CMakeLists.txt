@@ -55,6 +55,7 @@ find_package(OpenSSL REQUIRED)
 include(FetchContent)
 
 # Download external dependencies
+# Boost Asio
 set(BOOST_INCLUDE_LIBRARIES asio regex algorithm)
 set(BOOST_ENABLE_CMAKE ON)
 FetchContent_Declare(
@@ -77,7 +78,7 @@ set(CXXOPTS_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)
 set(CXXOPTS_ENABLE_WARNINGS OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(cxxopts)
 
-# Link CXXOPTS
+# Link CXXOPTS, Boost Asio plus OPenSSL
 target_link_libraries(${PROJECT_TARGET} cxxopts Boost::asio OpenSSL::Crypto OpenSSL::SSL)
 
 target_include_directories(${PROJECT_TARGET} PRIVATE ${PROJECT_SOURCE_DIR}/include ${PROJECT_BINARY_DIR})

@@ -1,7 +1,7 @@
 # RamBam
 
 Stress test your API/web app/website using massive parallel HTTP requests. Which can be triggered remotely.
-Written in C++, using a [C++20 HTTP client](https://github.com/avocadoboi/cpp20-http-client) (written in C++ as well and using TCP sockets).
+Written in C++, using a [Boost Asio](https://boost.org/libs/asio) (which is also written in C++).
 
 ## Download
 

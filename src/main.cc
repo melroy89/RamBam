@@ -65,7 +65,7 @@ Settings processArguments(const cxxopts::ParseResult& result, cxxopts::Options& 
   else
   {
     // TODO: This is a manual override, will be removed in the future
-    // settings.url = "https://melroy.org/";
+    // For testing only now...
     settings.url = "http://localhost/test/";
   }
   return settings;
