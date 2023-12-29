@@ -19,7 +19,6 @@ project(${PROJECT_NAME}
 
 cmake_policy(VERSION 3.10...3.24)
 
-
 # Enable compiler warnings
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic") #  -Werror
 # Debug flags
