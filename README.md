@@ -5,7 +5,7 @@ Written in C++, using a [Boost Asio](https://boost.org/libs/asio) (which is also
 
 ## Download
 
-I didn't create a release yet (it's still in development), but if you are using Linux you can just download the job artifact from [the build job](https://gitlab.melroy.org/melroy/rambam/-/pipelines/latest) (`rambam` binary)
+I didn't create a release yet (it's still in development), but if you are using Linux you can just download the job artifact from [the "build" job -> artifacts -> Browse](https://gitlab.melroy.org/melroy/rambam/-/pipelines/latest) (`rambam` binary).
 
 ## Developers
 
