@@ -20,7 +20,7 @@ Usage:
 More advanced example (`-v` for verbose, `-t` for 10 threads, `r` for 45 requests PER thread, `-p` for JSON Post data):
 
 ```bash
-./rambam -v -t 10 -r 45 -p '{"username": "melroy" }' https://domain.tld/api/v1/user/create
+./rambam -v -t 10 -r 45 -p '{"username": "melroy"}' https://domain.tld/api/v1/user/create
 ```
 
 ## Developers
@@ -51,4 +51,4 @@ Binary is now located at: `build/rambam`.
 - Enable debug output via: `-d` flag.
 - If you have a self-signed certificate try to use `-o` flag to override verifcation or disable peer certificate verification using: `-disable-peer-verify` flag.
 - Silent all output via : `-s` flag.
-- We don't support `transfer-encoding: chunked` (only possible with HTTP 1.1), we use HTTP 1.0 requests.
+- We don't support `transfer-encoding: chunked` (only possible with HTTP 1.1), hence we use only HTTP 1.0 requests.
