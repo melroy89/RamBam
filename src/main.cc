@@ -39,14 +39,6 @@ Settings processArguments(const cxxopts::ParseResult& result, cxxopts::Options& 
   settings.silent = result["silent"].as<bool>();
   settings.debug = result["debug"].as<bool>();
 
-  // TODO: will be mandatory
-  // if (!result.count("urls"))
-  //{
-  //  std::cerr << "error: missing URL(s) as last argument\n";
-  //  std::cout << options.help() << std::endl;
-  //  exit(0);
-  //}
-
   if (result.count("urls"))
   {
     for (const std::string& url : result["urls"].as<std::vector<std::string>>())
@@ -69,6 +61,11 @@ Settings processArguments(const cxxopts::ParseResult& result, cxxopts::Options& 
     // TODO: This is a manual override, will be removed in the future
     // For testing only now...
     settings.url = "http://localhost/test/";
+
+    // TODO: will be mandatory
+    //  std::cerr << "error: missing URL(s) as last argument\n";
+    //  std::cout << options.help() << std::endl;
+    //  exit(0);
   }
   return settings;
 }
