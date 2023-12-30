@@ -31,6 +31,8 @@ Settings processArguments(const cxxopts::ParseResult& result, cxxopts::Options& 
   // Repeat the requests inside each thread again with x times
   // So a total of: repeat_thread_count * repeat_requests_count
   settings.repeat_requests_count = result["request-count"].as<int>();
+  if (result.count("post"))
+    settings.post_data = result["post"].as<std::string>();
   settings.disable_peer_verification = result["disable-peer-verify"].as<bool>();
   settings.override_verify_tls = result["override-verify-tls"].as<bool>();
   settings.verbose = result["verbose"].as<bool>();
@@ -83,8 +85,9 @@ int main(int argc, char* argv[])
     ("s,silent", "Silent (No output)", cxxopts::value<bool>()->default_value("false"))
     ("t,thread-count", "Thread count", cxxopts::value<int>()->default_value("2"))
     ("r,request-count", "Request count PER thread, meaning:\nTotal requests = thread count * request count", cxxopts::value<int>()->default_value("5"))
+    ("p,post", "Post JSON data (request will be POST instead of GET)", cxxopts::value<std::string>())
     ("d,debug", "Enable debugging (eg. debug TLS)", cxxopts::value<bool>()->default_value("false"))
-    ("p,disable-peer-verify", "Disable peer certificate verification", cxxopts::value<bool>()->default_value("false"))
+    ("disable-peer-verify", "Disable peer certificate verification", cxxopts::value<bool>()->default_value("false"))
     ("o,override-verify-tls", "Override TLS peer certificate verification", cxxopts::value<bool>()->default_value("false"))
     ("urls", "URL(s) under test (space separated)", cxxopts::value<std::vector<std::string>>())
     ("version", "Show the version")
