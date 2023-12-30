@@ -19,10 +19,7 @@
 using namespace std::chrono_literals;
 
 /**
- * More detailed implementation, see:
- * https://github.com/cpp-netlib/cpp-netlib/blob/552ce94bd91c055f11ba524adf0ca0712063d711/boost/network/protocol/http/client/connection/ssl_delegate.ipp
- *
- * And also:
+ * Reference:
  * https://github.com/xtreemfs/xtreemfs/blob/master/cpp/src/rpc/client.cpp
  */
 
