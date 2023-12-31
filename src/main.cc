@@ -8,7 +8,10 @@
 #include "settings_struct.h"
 
 /**
- * \brief Helper function to parse the application input options.
+ * \brief Process the command line arguments
+ * \param result The result of the command line parsing
+ * \param options The options object
+ * \return The settings struct
  */
 Settings process_arguments(const cxxopts::ParseResult& result, cxxopts::Options& options)
 {

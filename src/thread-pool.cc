@@ -58,6 +58,7 @@ void ThreadPool::stop()
   is_started_ = false;
 }
 
+// Get the number of threads in the thread pool
 int ThreadPool::get_number_threads() const
 {
   return number_;

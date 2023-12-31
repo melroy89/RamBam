@@ -4,6 +4,10 @@
 #include "handler.h"
 #include "thread-pool.h"
 
+/**
+ * \brief Start the threads
+ * \param settings The settings struct
+ */
 void Handler::start_threads(const Settings& settings)
 {
   ThreadPool pool(settings.repeat_thread_count);
