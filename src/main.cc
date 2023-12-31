@@ -3,16 +3,16 @@
 #include <string>
 #include <vector>
 
+#include "handler.h"
 #include "project_config.h"
 #include "settings_struct.h"
-#include "thread.h"
 
 /**
  * \brief Helper function to parse the application input options.
  */
-Settings processArguments(const cxxopts::ParseResult& result, cxxopts::Options& options)
+Settings process_arguments(const cxxopts::ParseResult& result, cxxopts::Options& options)
 {
-  Settings settings;
+  Settings settings{};
 
   if (result.count("version"))
   {
@@ -28,12 +28,12 @@ Settings processArguments(const cxxopts::ParseResult& result, cxxopts::Options& 
 
   // Repeat the requests x times in parallel using threads
   settings.repeat_thread_count = result["thread-count"].as<int>();
-  // Repeat the requests inside each thread again with x times
-  // So a total of: repeat_thread_count * repeat_requests_count
-  settings.repeat_requests_count = result["request-count"].as<int>();
+  if (result.count("request-count"))
+    settings.repeat_requests_count = result["request-count"].as<int>();
+  settings.duration_sec = result["duration"].as<int>();
   if (result.count("post"))
     settings.post_data = result["post"].as<std::string>();
-  settings.disable_peer_verification = result["disable-peer-verify"].as<bool>();
+  settings.verify_peer = !(result["disable-peer-verify"].as<bool>());
   settings.override_verify_tls = result["override-verify-tls"].as<bool>();
   settings.verbose = result["verbose"].as<bool>();
   settings.silent = result["silent"].as<bool>();
@@ -80,9 +80,9 @@ int main(int argc, char* argv[])
   options.add_options()
     ("v,verbose", "Verbose (More output)", cxxopts::value<bool>()->default_value("false"))
     ("s,silent", "Silent (No output)", cxxopts::value<bool>()->default_value("false"))
-    ("d,duration", "Test duration in seconds", cxxopts::value<int>()->default_value("10"))
-    ("t,thread-count", "Thread count", cxxopts::value<int>()->default_value("2"))
-    ("r,request-count", "Request count PER thread, meaning:\nTotal requests = thread count * request count", cxxopts::value<int>()->default_value("5"))
+    ("d,duration", "Test duration in seconds", cxxopts::value<int>()->default_value("1"))
+    ("t,thread-count", "Thread count the default is zero, but that use the supported number of current threads of the hardware", cxxopts::value<int>()->default_value("0"))
+    ("r,request-count", "Request count PER thread, meaning:\nTotal requests = thread count * request count", cxxopts::value<int>())
     ("p,post", "Post JSON data (request will be POST instead of GET)", cxxopts::value<std::string>())
     ("D,debug", "Enable debugging (eg. debug TLS)", cxxopts::value<bool>()->default_value("false"))
     ("disable-peer-verify", "Disable peer certificate verification", cxxopts::value<bool>()->default_value("false"))
@@ -98,15 +98,9 @@ int main(int argc, char* argv[])
   try
   {
     auto result = options.parse(argc, argv);
-    Settings settings = processArguments(result, options);
-    if (!settings.silent) {
-      std::cout << "==========================================" << std::endl;
-      std::cout << "URL under test: " << settings.url << std::endl;
-      std::cout << "Total threads: " << settings.repeat_thread_count << ", with requests per thread: " << settings.repeat_requests_count <<  std::endl ;
-      std::cout << "==========================================" << std::endl;
-    }
+    Settings settings = process_arguments(result, options);
     // Start threads, blocking call until all threads are finished
-    Thread::start_threads(settings);
+    Handler::start_threads(settings);
   }
   catch (const cxxopts::exceptions::exception& error)
   {

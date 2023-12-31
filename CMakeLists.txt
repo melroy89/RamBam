@@ -31,8 +31,9 @@ configure_file(
   "${PROJECT_BINARY_DIR}/project_config.h")
 
 set(HEADERS
-  include/thread.h
+  include/thread-pool.h
   include/client.h
+  include/handler.h
   include/reply_struct.h
   include/duration_struct.h
   include/result_response_struct.h
@@ -40,8 +41,9 @@ set(HEADERS
 
 set(SOURCES
   src/main.cc
-  src/thread.cc
+  src/thread-pool.cc
   src/client.cc
+  src/handler.cc
   ${HEADERS}
 )
 

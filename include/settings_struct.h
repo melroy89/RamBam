@@ -6,12 +6,14 @@ struct Settings
 {
   int repeat_thread_count;
   int repeat_requests_count;
+  int duration_sec;
 
   std::string url; // TODO: Support multiple URLs as a vector
   std::string post_data;
-  bool disable_peer_verification;
+  bool verify_peer;
   bool override_verify_tls;
   bool verbose;
   bool silent;
   bool debug;
+  long ssl_options;
 };

@@ -11,17 +11,37 @@ I didn't create a release yet (it's still in development), but if you are using 
 
 Help: `./rambam -h`
 
-Usage:
+Usage (_default:_ duration test of _only_ 1 second):
 
 ```bash
 ./rambam domain.tld
 ```
 
-More advanced example (`-v` for verbose, `-t` for 10 threads, `r` for 45 requests PER thread, `-p` for JSON Post data):
+Increase the default **duration test** to 10 seconds instead of 1 second (`-d` for duration):
 
 ```bash
-./rambam -v -t 10 -r 45 -p '{"username": "melroy"}' https://domain.tld/api/v1/user/create
+./rambam -d 10 https://domain.tld
 ```
+
+Using **request count test** (`-t` for number of requests):
+
+```bash
+./rambam -r 45 https://domain.tld
+```
+
+Example using **Post requests** (`-p` for **JSON** Post data):
+
+```bash
+./rambam -p '{"username": "melroy"}' https://domain.tld/api/v1/user/create
+```
+
+More advanced parameters (`-v` for verbose output, `--debug` for additional TLS debug information):
+
+```bash
+./rambam -v --debug https://domain.tld
+```
+
+You can use multiple parameters together, except the `-d` for duration test (in seconds) and `-r` for request test (total requests). Just pick one.
 
 ## Developers
 

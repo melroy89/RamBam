@@ -19,43 +19,28 @@
 using namespace std::chrono_literals;
 
 /**
- * Reference:
- * https://github.com/xtreemfs/xtreemfs/blob/master/cpp/src/rpc/client.cpp
- */
-
-/**
  * \brief HTTP Client Constructor
  */
-Client::Client(int repeat_requests_count,
-               const std::string& url,
-               const std::string& post_data,
-               bool verbose,
-               bool silent,
-               bool verify_peer,
-               bool override_verify_tls,
-               bool debug_verify_tls,
-               long ssl_options)
-    : repeat_requests_count_(repeat_requests_count),
-      url_(url),
-      post_data_(post_data),
-      verbose_(verbose),
-      silent_(silent),
-      verify_peer_(verify_peer),
-      override_verify_tls_(override_verify_tls),
-      debug_verify_tls_(debug_verify_tls),
-      ssl_options_(ssl_options)
+Client::Client(const Settings& settings, boost::asio::io_context& io_context)
+    : repeat_requests_count_(settings.repeat_requests_count),
+      duration_sec_(settings.duration_sec),
+      url_(settings.url),
+      post_data_(settings.post_data),
+      verbose_(settings.verbose),
+      silent_(settings.silent),
+      verify_peer_(settings.verify_peer),
+      override_verify_tls_(settings.override_verify_tls),
+      debug_verify_tls_(settings.debug),
+      ssl_options_(settings.ssl_options),
+      io_context_(io_context)
 {
-}
+  if (ssl_options_ == 0)
+  {
+    // Default Asio SSL options
+    ssl_options_ = (boost::asio::ssl::context::default_workarounds | boost::asio::ssl::context::no_sslv2 | boost::asio::ssl::context::no_sslv3 |
+                    boost::asio::ssl::context::no_tlsv1 | boost::asio::ssl::context::no_tlsv1_1);
+  }
 
-/**
- * \brief Destructor
- */
-Client::~Client()
-{
-}
-
-void Client::spawn_requests() const
-{
   try
   {
     boost::regex expression(
@@ -68,17 +53,16 @@ void Client::spawn_requests() const
     if (parsed_url.size() == 4)
     {
       const auto start_dns_lookup_time_point = std::chrono::steady_clock::now();
-      boost::asio::io_context io;
-      boost::asio::ip::tcp::resolver resolver(io);
+      boost::asio::ip::tcp::resolver resolver(io_context_);
       // Resolve the server hostname and service
       boost::asio::ip::tcp::resolver::query query(parsed_url[1], parsed_url[0]);
-      boost::asio::ip::tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
+      endpoint_iterator_ = resolver.resolve(query);
       const auto end_dns_lookup_time_point = std::chrono::steady_clock::now();
-      std::chrono::duration<double, std::milli> dns_lookup_duration = end_dns_lookup_time_point - start_dns_lookup_time_point;
+      dns_lookup_duration_ = end_dns_lookup_time_point - start_dns_lookup_time_point;
 
       if (!silent_ && verbose_)
       {
-        std::cout << "DNS lookup duration (once per thread): " << dns_lookup_duration << std::endl;
+        std::cout << "DNS lookup duration: " << dns_lookup_duration_ << std::endl;
       }
 
       // If path is empty, then just set to '/'
@@ -87,16 +71,11 @@ void Client::spawn_requests() const
         parsed_url[3] = '/';
       }
 
-      // Spawn multiple async http requests
-      for (int i = 0; i < repeat_requests_count_; ++i)
-      {
-        boost::asio::co_spawn(io,
-                              this->async_request(io, endpoint_iterator, dns_lookup_duration, std::move(parsed_url[0]), std::move(parsed_url[1]),
-                                                  std::move(parsed_url[2]), std::move(parsed_url[3]), std::move(post_data_)),
-                              boost::asio::detached);
-      }
-      // Run the tasks concurrently
-      io.run();
+      // Store the parsed URL
+      protocol_ = std::move(parsed_url[0]);
+      host_ = std::move(parsed_url[1]);
+      port_ = std::move(parsed_url[2]);
+      path_params_ = std::move(parsed_url[3]);
     }
     else
     {
@@ -110,14 +89,17 @@ void Client::spawn_requests() const
   }
 }
 
-boost::asio::awaitable<ResultResponse> Client::async_request(boost::asio::io_context& io_context,
-                                                             boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,
-                                                             const std::chrono::duration<double, std::milli>& dns_lookup_duration,
-                                                             const std::string& protocol,
-                                                             const std::string& host,
-                                                             const std::string& port,
-                                                             const std::string& pathParams,
-                                                             const std::string& post_data) const
+/**
+ * \brief Destructor
+ */
+Client::~Client()
+{
+}
+
+/**
+ * \brief Do the HTTP(s) request reusing the same settings for each request.
+ */
+void Client::do_request() const
 {
   // Start time measurement
   const auto start_prepare_request_time_point = std::chrono::steady_clock::now();
@@ -129,31 +111,31 @@ boost::asio::awaitable<ResultResponse> Client::async_request(boost::asio::io_con
     boost::asio::streambuf request;
     std::ostream request_stream(&request);
     // We should also support: DELETE, PUT, PATCH
-    if (empty(post_data))
+    if (empty(post_data_))
     {
-      request_stream << "GET " + pathParams + " HTTP/1.0\r\n";
+      request_stream << "GET " + path_params_ + " HTTP/1.0\r\n";
     }
     else
     {
-      request_stream << "POST " + pathParams + " HTTP/1.0\r\n";
+      request_stream << "POST " + path_params_ + " HTTP/1.0\r\n";
     }
-    std::string hostname(host);
-    if (!empty(port))
+    std::string hostname(host_);
+    if (!empty(port_))
     {
-      hostname.append(":" + port);
+      hostname.append(":" + port_);
     }
     request_stream << "Host: " + hostname + "\r\n";
     request_stream << "User-Agent: RamBam/1.0\r\n";
-    if (!empty(post_data))
+    if (!empty(post_data_))
     {
       request_stream << "Content-Type: application/json; charset=utf-8\r\n";
       request_stream << "Accept: */*\r\n"; // We should be able to override this (eg. application/json)
-      request_stream << "Content-Length: " << post_data.length() << "\r\n";
+      request_stream << "Content-Length: " << post_data_.length() << "\r\n";
     }
     request_stream << "Connection: close\r\n\r\n"; // End is a double line feed
-    if (!empty(post_data))
+    if (!empty(post_data_))
     {
-      request_stream << post_data;
+      request_stream << post_data_;
     }
 
     // Note: the end of prepare request time point is the start of socket connect time point
@@ -163,17 +145,17 @@ boost::asio::awaitable<ResultResponse> Client::async_request(boost::asio::io_con
     // Pre-define to zero
     std::chrono::duration<double, std::milli> socket_connect_time_duration = std::chrono::milliseconds::zero();
     std::chrono::duration<double, std::milli> handshake_time_duration = std::chrono::milliseconds::zero();
-    if (protocol.compare("http") == 0)
+    if (protocol_.compare("http") == 0)
     {
       // Create and connect the plain TCP socket
-      boost::asio::ip::tcp::socket socket(io_context);
-      boost::asio::connect(socket, endpoint_iterator);
+      boost::asio::ip::tcp::socket socket(io_context_);
+      boost::asio::connect(socket, endpoint_iterator_);
       const auto end_socket_connect_time_point = std::chrono::steady_clock::now();
       socket_connect_time_duration = end_socket_connect_time_point - end_prepare_request_time_point;
       result = Client::handle_request(socket, request);
       socket.close();
     }
-    else if (protocol.compare("https") == 0)
+    else if (protocol_.compare("https") == 0)
     {
       // Create and connect the socket using the TLS protocol
       // TODO: Give the user more control about the context, like tlsv1.2 maybe?
@@ -197,7 +179,7 @@ boost::asio::awaitable<ResultResponse> Client::async_request(boost::asio::io_con
         else
         {
           // By default use the built-in host_name_verification()
-          tls_context.set_verify_callback(boost::asio::ssl::host_name_verification(host));
+          tls_context.set_verify_callback(boost::asio::ssl::host_name_verification(host_));
         }
       }
       else
@@ -205,12 +187,12 @@ boost::asio::awaitable<ResultResponse> Client::async_request(boost::asio::io_con
         tls_context.set_verify_mode(boost::asio::ssl::context::verify_none);
       }
 
-      boost::asio::ssl::stream<boost::asio::ip::tcp::socket> socket(io_context, tls_context);
+      boost::asio::ssl::stream<boost::asio::ip::tcp::socket> socket(io_context_, tls_context);
 
       // Set SNI
-      SSL_set_tlsext_host_name(socket.native_handle(), host.c_str());
+      SSL_set_tlsext_host_name(socket.native_handle(), host_.c_str());
 
-      boost::asio::connect(socket.next_layer(), endpoint_iterator);
+      boost::asio::connect(socket.next_layer(), endpoint_iterator_);
 
       // Note: end of socket connect time point is the start of the handshake time point
       const auto end_socket_connect_time_point = std::chrono::steady_clock::now();
@@ -229,7 +211,7 @@ boost::asio::awaitable<ResultResponse> Client::async_request(boost::asio::io_con
       std::cerr << "Error: Unsupported protocol (for now). Exit." << std::endl;
       exit(1);
     }
-    result.duration.dns = dns_lookup_duration;
+    result.duration.dns = dns_lookup_duration_;
     result.duration.prepare_request = prepare_request_time_duration;
     result.duration.connect = socket_connect_time_duration;
     result.duration.handshake = handshake_time_duration;
@@ -270,7 +252,6 @@ boost::asio::awaitable<ResultResponse> Client::async_request(boost::asio::io_con
   {
     std::cerr << "Error: Something went wrong during the request: " << e.what() << std::endl;
   }
-  co_return result;
 }
 
 /**
