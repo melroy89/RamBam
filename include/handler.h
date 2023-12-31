@@ -17,5 +17,5 @@ public:
 private:
   Handler() = delete;
 
-  static void info(ThreadPool& pool, const Settings& settings);
+  static void info(const ThreadPool& pool, const Settings& settings);
 };

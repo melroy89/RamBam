@@ -10,16 +10,12 @@
 class ThreadPool
 {
 public:
-  ThreadPool(const size_t num_threads = 0);
+  explicit ThreadPool(const size_t num_threads = 0);
   ~ThreadPool();
 
   void start();
   void stop();
-  bool is_started() const;
-  int get_number_threads() const
-  {
-    return number_;
-  }
+  int get_number_threads() const;
 
   /**
    * \brief Enqueue work to the thread pool using the io_service.

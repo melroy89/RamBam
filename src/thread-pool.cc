@@ -58,8 +58,7 @@ void ThreadPool::stop()
   is_started_ = false;
 }
 
-// Check if the thread pool is already started
-bool ThreadPool::is_started() const
+int ThreadPool::get_number_threads() const
 {
-  return is_started_;
+  return number_;
 }

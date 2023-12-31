@@ -36,17 +36,22 @@ void Handler::start_threads(const Settings& settings)
       std::this_thread::sleep_for(std::chrono::milliseconds(4));
       ++total;
     }
-    std::cout << "Total requests executed: " << total << std::endl;
+    if (!settings.silent)
+    {
+      std::cout << "--------------------------------------" << std::endl;
+      std::cout << "Total requests executed: " << total << std::endl;
+    }
   }
 
   pool.stop();
-  std::cout << "=== Test completed ===" << std::endl;
+  if (!settings.silent)
+    std::cout << "=========== Test Completed ===========" << std::endl;
 }
 
 // Print info about the test
-void Handler::info(ThreadPool& pool, const Settings& settings)
+void Handler::info(const ThreadPool& pool, const Settings& settings)
 {
-  std::cout << "==========================================" << std::endl;
+  std::cout << "======================================" << std::endl;
   std::cout << "URL under test: " << settings.url << std::endl;
   if (settings.repeat_requests_count > 0)
   {
@@ -61,5 +66,5 @@ void Handler::info(ThreadPool& pool, const Settings& settings)
     std::cout << "Duration: " << settings.duration_sec << " seconds" << std::endl;
   }
   std::cout << "Threads: " << pool.get_number_threads() << std::endl;
-  std::cout << "==========================================" << std::endl;
+  std::cout << "======================================" << std::endl;
 }
