@@ -56,7 +56,7 @@ void Handler::info(const ThreadPool& pool, const Settings& settings)
   if (settings.repeat_requests_count > 0)
   {
     // Request count test
-    std::cout << "Type of test: Requests per thread" << std::endl;
+    std::cout << "Type of test: Number of Requests" << std::endl;
     std::cout << "Total requests: " << settings.repeat_requests_count << std::endl;
   }
   else
