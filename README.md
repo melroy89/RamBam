@@ -11,16 +11,16 @@ I didn't create a release yet (it's still in development), but if you are using 
 
 Help: `./rambam -h`
 
-Usage (_default:_ Number of Requests GET Test of "_just_" 10.000 requests):
+Usage (_default:_ Number of Requests GET Test of "_just_" 100 requests):
 
 ```bash
 ./rambam domain.tld
 ```
 
-Increase the default **request count** from 10.000 to 80.000 requests (`-r` for requests):
+Increase the default **request count** from 100 to 10.000 requests (`-r` for requests):
 
 ```bash
-./rambam -r 80000 https://domain.tld
+./rambam -r 10000 https://domain.tld
 ```
 
 Using the **duration test** for 10 seconds (`-d` for duration):
