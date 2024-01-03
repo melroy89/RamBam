@@ -13,36 +13,36 @@ RamBam is written in C++ and using a [Asio](https://think-async.com/Asio/) (also
 
 ## Usage
 
-Help: `./rambam -h`
+Help: `rambam -h`
 
 Usage (_default:_ Number of Requests GET Test of "_just_" 100 requests):
 
 ```bash
-./rambam domain.tld
+rambam domain.tld
 ```
 
 Increase the default **request count** from 100 to 10.000 requests (`-r` for requests):
 
 ```bash
-./rambam -r 10000 https://domain.tld
+rambam -r 10000 https://domain.tld
 ```
 
 Using the **duration test** for 10 seconds (`-d` for duration):
 
 ```bash
-./rambam -d 10 https://domain.tld
+rambam -d 10 https://domain.tld
 ```
 
 Example using **Post requests** (`-p` for **JSON** Post data):
 
 ```bash
-./rambam -p '{"username": "melroy"}' https://domain.tld/api/v1/user/create
+rambam -p '{"username": "melroy"}' https://domain.tld/api/v1/user/create
 ```
 
 More advanced parameters (`-v` for verbose output, `--debug` for additional TLS debug information):
 
 ```bash
-./rambam -v --debug https://domain.tld
+rambam -v --debug https://domain.tld
 ```
 
 You can use multiple parameters together, except the `-d` for duration test (in seconds) and `-r` for request test (total requests). Just pick one of the two different tests.
