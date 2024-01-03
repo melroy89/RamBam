@@ -1,7 +1,7 @@
 # RamBam
 
-Stress test your API/web app/website using massive parallel HTTP requests. Which can be triggered remotely.
-Written in C++, using a [Boost Asio](https://boost.org/libs/asio) (which is also written in C++).
+RamBam is a stress-test for API/web app/website, using massive parallel HTTP requests (Soon: Triggered remotely).  
+RamBam is written in C++ and using a [Asio](https://think-async.com/Asio/) (also written in C++).
 
 ## Demo
 
@@ -9,7 +9,7 @@ Written in C++, using a [Boost Asio](https://boost.org/libs/asio) (which is also
 
 ## Download
 
-I didn't create a release yet (it's still in development), but if you are using Linux you can just download the job artifact from [the "build" job -> artifacts -> Browse](https://gitlab.melroy.org/melroy/rambam/-/pipelines/latest) (`rambam` binary).
+[Download the latest release](https://gitlab.melroy.org/melroy/rambam/-/releases).
 
 ## Usage
 

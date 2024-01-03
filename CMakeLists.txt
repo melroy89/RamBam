@@ -1,11 +1,12 @@
 cmake_minimum_required(VERSION 3.20)
 
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
+# Get GIT_TAG_VERSION from most recent git tag
+include(GitVersion)
+
 set(PROJECT_NAME RamBam)
 set(PROJECT_TARGET rambam)
-set(PROJECT_VERSION_MAJOR "1")
-set(PROJECT_VERSION_MINOR "0")
-set(PROJECT_VERSION_PATCH "0")
-set(PROJECT_VERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}")
 
 find_program(CCACHE_PROGRAM ccache)
 if(CCACHE_PROGRAM)
@@ -13,7 +14,7 @@ if(CCACHE_PROGRAM)
 endif()
 
 project(${PROJECT_NAME}
-  VERSION ${PROJECT_VERSION}
+  VERSION ${GIT_TAG_VERSION}
   DESCRIPTION "Stress test your website/API with massive parallel HTTP requests"
   LANGUAGES CXX)
 
@@ -25,6 +26,12 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic") #  -Werror
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g")
 # Enable optimization for release
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DNDEBUG")
+
+# Production build
+if("${CMAKE_BUILD_TYPE}" STREQUAL "Release")
+  # Include CPack packaging settings
+  include(Packaging)
+endif()
 
 configure_file(
   "${PROJECT_SOURCE_DIR}/include/project_config.h.in"
@@ -86,3 +93,5 @@ FetchContent_MakeAvailable(cxxopts)
 target_link_libraries(${PROJECT_TARGET} cxxopts Boost::asio OpenSSL::Crypto OpenSSL::SSL)
 
 target_include_directories(${PROJECT_TARGET} PRIVATE ${PROJECT_SOURCE_DIR}/include ${PROJECT_BINARY_DIR})
+
+install(TARGETS ${PROJECT_TARGET} RUNTIME DESTINATION "bin" COMPONENT applications)
