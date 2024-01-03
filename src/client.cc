@@ -62,7 +62,7 @@ Client::Client(const Settings& settings, boost::asio::io_context& io_context)
 
       if (!silent_ && verbose_)
       {
-        std::cout << "DNS lookup duration: " << dns_lookup_duration_ << std::endl;
+        std::cout << "DNS lookup duration: " << dns_lookup_duration_.count() << "ms" << std::endl;
       }
 
       // If path is empty, then just set to '/'
@@ -227,9 +227,9 @@ void Client::do_request() const
     {
       std::cout << "Response: " << result.reply.http_version << " " << std::to_string(result.reply.status_code) << " " << result.reply.status_message
                 << std::endl;
-      std::cout << "Total duration: " << result.duration.total_without_dns << " (prepare: " << result.duration.prepare_request
-                << ", socket connect: " << result.duration.connect << ", handshake: " << result.duration.handshake
-                << ", request: " << result.duration.request << ", response: " << result.duration.response << ")" << std::endl;
+      std::cout << "Total duration: " << result.duration.total_without_dns.count() << "ms (prepare: " << result.duration.prepare_request.count()
+                << "ms, socket connect: " << result.duration.connect.count() << "ms, handshake: " << result.duration.handshake.count()
+                << "ms, request: " << result.duration.request.count() << "ms, response: " << result.duration.response.count() << "ms)" << std::endl;
       std::cout << "Body Content:\n" << result.reply.body << std::endl;
       std::cout << "Headers:\n" << std::endl;
       for (const auto& header : result.reply.headers)
@@ -241,7 +241,8 @@ void Client::do_request() const
     else if (!silent_)
     {
       // TODO: Something is off with result.reply.status_message (hidden special chars?)
-      std::cout << "Response: " << std::to_string(result.reply.status_code) << " in " << result.duration.total_without_dns << std::endl;
+      std::cout << "Response: " << std::to_string(result.reply.status_code) << " in " << result.duration.total_without_dns.count() << "ms"
+                << std::endl;
     }
   }
   catch (const boost::system::system_error& e)

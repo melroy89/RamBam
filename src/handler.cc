@@ -96,11 +96,11 @@ void Handler::test_report(const Settings& settings,
   {
     // Duration test
     std::cout << "Type of test: Duration" << std::endl;
-    std::cout << "Duration input: " << settings.duration_sec << " sec" << std::endl;
+    std::cout << "Duration input: " << settings.duration_sec << " second(s)" << std::endl;
     std::cout << "Total requests executed: " << total << std::endl;
     std::cout << "Average reqs/sec: " << total / total_seconds << std::endl;
   }
-  std::cout << "Total internal queue time: " << total_queue_time << std::endl;
-  std::cout << "Total test duration: " << total_test_duration << std::endl;
+  std::cout << "Total internal queue time: " << total_queue_time.count() << " milliseconds" << std::endl;
+  std::cout << "Total test duration: " << total_test_duration.count() << " milliseconds" << std::endl;
   std::cout << "========== Test Completed ! ==========" << std::endl;
 }
