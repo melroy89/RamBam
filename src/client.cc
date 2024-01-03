@@ -5,7 +5,6 @@
 #include <boost/asio/detached.hpp>
 #include <boost/asio/ssl.hpp>
 #include <boost/bind/bind.hpp>
-#include <boost/regex.hpp>
 #include <iostream>
 #include <iterator>
 #include <openssl/ssl.h>
@@ -15,6 +14,7 @@
 #include <vector>
 
 #include "client.h"
+#include "project_config.h"
 
 using namespace std::chrono_literals;
 
@@ -43,19 +43,14 @@ Client::Client(const Settings& settings, boost::asio::io_context& io_context)
 
   try
   {
-    boost::regex expression(
-        //   proto             host                 port     rest
-        "(\?:([^:/\?#]+)://)\?(\\w+[^/\?#:]*)(\?::(\\d+))*(?:)(.*)");
-    boost::sregex_token_iterator iter(url_.begin(), url_.end(), expression, {1, 2, 3, 4});
-    boost::sregex_token_iterator end;
-    std::vector<std::string> parsed_url(iter, end);
-
-    if (parsed_url.size() == 4)
+    std::regex expression("([\\w]+)://([^:/]+)(?::(\\d+))?(/.*)?");
+    std::smatch matched_url;
+    if (std::regex_match(url_, matched_url, expression))
     {
       const auto start_dns_lookup_time_point = std::chrono::steady_clock::now();
       boost::asio::ip::tcp::resolver resolver(io_context_);
       // Resolve the server hostname and service
-      boost::asio::ip::tcp::resolver::query query(parsed_url[1], parsed_url[0]);
+      boost::asio::ip::tcp::resolver::query query(matched_url[2], matched_url[1]);
       endpoint_iterator_ = resolver.resolve(query);
       const auto end_dns_lookup_time_point = std::chrono::steady_clock::now();
       dns_lookup_duration_ = end_dns_lookup_time_point - start_dns_lookup_time_point;
@@ -66,20 +61,17 @@ Client::Client(const Settings& settings, boost::asio::io_context& io_context)
       }
 
       // If path is empty, then just set to '/'
-      if (parsed_url[3].empty())
-      {
-        parsed_url[3] = '/';
-      }
+      std::string rest = matched_url[4].str().empty() ? std::string("/") : matched_url[4];
 
       // Store the parsed URL
-      protocol_ = std::move(parsed_url[0]);
-      host_ = std::move(parsed_url[1]);
-      port_ = std::move(parsed_url[2]);
-      path_params_ = std::move(parsed_url[3]);
+      protocol_ = std::move(matched_url[1]);
+      host_ = std::move(matched_url[2]);
+      port_ = std::move(matched_url[3]);
+      path_params_ = std::move(rest);
     }
     else
     {
-      std::cerr << "Error: Could not parse the URL correctly. Exit!" << std::endl;
+      std::cerr << "Error: URL did not match the expected pattern. Exit!" << std::endl;
       exit(1);
     }
   }
@@ -125,7 +117,7 @@ void Client::do_request() const
       hostname.append(":" + port_);
     }
     request_stream << "Host: " + hostname + "\r\n";
-    request_stream << "User-Agent: RamBam/1.0\r\n";
+    request_stream << "User-Agent: RamBam/" << PROJECT_VER << "\r\n";
     if (!empty(post_data_))
     {
       request_stream << "Content-Type: application/json; charset=utf-8\r\n";
