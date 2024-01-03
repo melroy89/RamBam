@@ -84,13 +84,13 @@ void Handler::test_report(const Settings& settings,
                           std::chrono::duration<double, std::milli> total_test_duration)
 {
   std::cout << "=============== Report ===============" << std::endl;
-  float seconds = total_test_duration.count() / 1000.0;
+  float total_seconds = total_test_duration.count() / 1000.0;
   if (settings.duration_sec == 0)
   {
     // Number of Requests test
     std::cout << "Type of test: Number of Requests" << std::endl;
     std::cout << "Request count input: " << settings.repeat_requests_count << std::endl;
-    std::cout << "Average reqs/sec: " << settings.repeat_requests_count / seconds << std::endl;
+    std::cout << "Average reqs/sec: " << settings.repeat_requests_count / total_seconds << std::endl;
   }
   else
   {
@@ -98,7 +98,7 @@ void Handler::test_report(const Settings& settings,
     std::cout << "Type of test: Duration" << std::endl;
     std::cout << "Duration input: " << settings.duration_sec << " sec" << std::endl;
     std::cout << "Total requests executed: " << total << std::endl;
-    std::cout << "Average reqs/sec: " << total / seconds << std::endl;
+    std::cout << "Average reqs/sec: " << total / total_seconds << std::endl;
   }
   std::cout << "Total internal queue time: " << total_queue_time << std::endl;
   std::cout << "Total test duration: " << total_test_duration << std::endl;
