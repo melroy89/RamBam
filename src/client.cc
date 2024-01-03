@@ -1,17 +1,13 @@
 
-#include <asio.hpp>
+#include <asio/connect.hpp>
+#include <asio/read.hpp>
+#include <asio/read_until.hpp>
 #include <iostream>
-#include <iterator>
 #include <openssl/ssl.h>
 #include <regex>
-#include <string>
-#include <thread>
-#include <vector>
 
 #include "client.h"
 #include "project_config.h"
-
-using namespace std::chrono_literals;
 
 /**
  * \brief HTTP Client Constructor

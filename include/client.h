@@ -1,7 +1,11 @@
 #pragma once
 
-#include <asio.hpp>
+#include <asio/io_context.hpp>
+#include <asio/ip/basic_resolver.hpp>
+#include <asio/ip/tcp.hpp>
 #include <asio/ssl.hpp>
+#include <asio/streambuf.hpp>
+#include <string>
 
 #include "reply_struct.h"
 #include "result_response_struct.h"
