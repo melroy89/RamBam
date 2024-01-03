@@ -4,7 +4,7 @@
  * \brief Constructor.
  * \param num_threads The number of threads to create in the thread pool (default 0 means use number of threads supported).
  */
-ThreadPool::ThreadPool(const std::size_t num_threads) : is_started_(false), io_service_(), work_guard_(boost::asio::make_work_guard(io_service_))
+ThreadPool::ThreadPool(const std::size_t num_threads) : is_started_(false), io_context_(), work_guard_(asio::make_work_guard(io_context_))
 {
   // By default, use the number of concurrent threads supported (only a hint),
   // could return '0' when not computable.
@@ -35,7 +35,7 @@ void ThreadPool::start()
         [this]()
         {
           // Block until there is work to do due to the worker guard
-          io_service_.run();
+          io_context_.run();
         });
   }
 }
@@ -53,8 +53,8 @@ void ThreadPool::stop()
   {
     thread.join();
   }
-  io_service_.stop();
-  io_service_.reset();
+  io_context_.stop();
+  io_context_.restart();
   is_started_ = false;
 }
 

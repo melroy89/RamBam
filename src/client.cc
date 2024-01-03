@@ -1,9 +1,5 @@
 
-#include <boost/asio.hpp>
-#include <boost/asio/co_spawn.hpp>
-#include <boost/asio/detached.hpp>
-#include <boost/asio/ssl.hpp>
-#include <boost/bind/bind.hpp>
+#include <asio.hpp>
 #include <iostream>
 #include <iterator>
 #include <openssl/ssl.h>
@@ -20,7 +16,7 @@ using namespace std::chrono_literals;
 /**
  * \brief HTTP Client Constructor
  */
-Client::Client(const Settings& settings, boost::asio::io_context& io_context)
+Client::Client(const Settings& settings, asio::io_context& io_context)
     : repeat_requests_count_(settings.repeat_requests_count),
       duration_sec_(settings.duration_sec),
       url_(settings.url),
@@ -36,8 +32,8 @@ Client::Client(const Settings& settings, boost::asio::io_context& io_context)
   if (ssl_options_ == 0)
   {
     // Default Asio SSL options
-    ssl_options_ = (boost::asio::ssl::context::default_workarounds | boost::asio::ssl::context::no_sslv2 | boost::asio::ssl::context::no_sslv3 |
-                    boost::asio::ssl::context::no_tlsv1 | boost::asio::ssl::context::no_tlsv1_1);
+    ssl_options_ = (asio::ssl::context::default_workarounds | asio::ssl::context::no_sslv2 | asio::ssl::context::no_sslv3 |
+                    asio::ssl::context::no_tlsv1 | asio::ssl::context::no_tlsv1_1);
   }
 
   try
@@ -47,10 +43,9 @@ Client::Client(const Settings& settings, boost::asio::io_context& io_context)
     if (std::regex_match(url_, matched_url, expression))
     {
       const auto start_dns_lookup_time_point = std::chrono::steady_clock::now();
-      boost::asio::ip::tcp::resolver resolver(io_context_);
+      asio::ip::tcp::resolver resolver(io_context_);
       // Resolve the server hostname and service
-      boost::asio::ip::tcp::resolver::query query(matched_url[2], matched_url[1]);
-      endpoint_iterator_ = resolver.resolve(query);
+      resolve_result_ = resolver.resolve(std::string(matched_url[2]), std::string(matched_url[1]));
       const auto end_dns_lookup_time_point = std::chrono::steady_clock::now();
       dns_lookup_duration_ = end_dns_lookup_time_point - start_dns_lookup_time_point;
 
@@ -99,7 +94,7 @@ void Client::do_request() const
   try
   {
     // Prepare HTTP request
-    boost::asio::streambuf request;
+    asio::streambuf request;
     std::ostream request_stream(&request);
     // We should also support: DELETE, PUT, PATCH
     if (empty(post_data_))
@@ -139,8 +134,8 @@ void Client::do_request() const
     if (protocol_.compare("http") == 0)
     {
       // Create and connect the plain TCP socket
-      boost::asio::ip::tcp::socket socket(io_context_);
-      boost::asio::connect(socket, endpoint_iterator_);
+      asio::ip::tcp::socket socket(io_context_);
+      asio::connect(socket, resolve_result_);
       const auto end_socket_connect_time_point = std::chrono::steady_clock::now();
       socket_connect_time_duration = end_socket_connect_time_point - end_prepare_request_time_point;
       result = Client::handle_request(socket, request);
@@ -150,7 +145,7 @@ void Client::do_request() const
     {
       // Create and connect the socket using the TLS protocol
       // TODO: Give the user more control about the context, like tlsv1.2 maybe?
-      boost::asio::ssl::context tls_context(boost::asio::ssl::context::tlsv13_client);
+      asio::ssl::context tls_context(asio::ssl::context::tlsv13_client);
       // Only allow TLS v1.2 & v1.3 by default
       tls_context.set_options(ssl_options_);
 
@@ -158,39 +153,39 @@ void Client::do_request() const
       if (verify_peer_)
       {
         // Verify TLS connection
-        tls_context.set_verify_mode(boost::asio::ssl::verify_peer);
+        tls_context.set_verify_mode(asio::ssl::verify_peer);
         // Set default CA paths
         tls_context.set_default_verify_paths();
 
         // Verify the remote host's certificate
         if (debug_verify_tls_)
         {
-          tls_context.set_verify_callback(boost::bind(&Client::verify_certificate_callback, this, boost::placeholders::_1, boost::placeholders::_2));
+          tls_context.set_verify_callback(std::bind(&Client::verify_certificate_callback, this, std::placeholders::_1, std::placeholders::_2));
         }
         else
         {
           // By default use the built-in host_name_verification()
-          tls_context.set_verify_callback(boost::asio::ssl::host_name_verification(host_));
+          tls_context.set_verify_callback(asio::ssl::host_name_verification(host_));
         }
       }
       else
       {
-        tls_context.set_verify_mode(boost::asio::ssl::context::verify_none);
+        tls_context.set_verify_mode(asio::ssl::context::verify_none);
       }
 
-      boost::asio::ssl::stream<boost::asio::ip::tcp::socket> socket(io_context_, tls_context);
+      asio::ssl::stream<asio::ip::tcp::socket> socket(io_context_, tls_context);
 
       // Set SNI
       SSL_set_tlsext_host_name(socket.native_handle(), host_.c_str());
 
-      boost::asio::connect(socket.next_layer(), endpoint_iterator_);
+      asio::connect(socket.next_layer(), resolve_result_);
 
       // Note: end of socket connect time point is the start of the handshake time point
       const auto end_socket_connect_time_point = std::chrono::steady_clock::now();
       socket_connect_time_duration = end_socket_connect_time_point - end_prepare_request_time_point;
 
       // Perform TLS handshake
-      socket.handshake(boost::asio::ssl::stream_base::client);
+      socket.handshake(asio::ssl::stream_base::client);
       const auto end_handshake_time_point = std::chrono::steady_clock::now();
       handshake_time_duration = end_handshake_time_point - end_socket_connect_time_point;
 
@@ -236,7 +231,7 @@ void Client::do_request() const
                 << std::endl;
     }
   }
-  catch (const boost::system::system_error& e)
+  catch (const asio::system_error& e)
   {
     std::cerr << "Error: Could not perform the HTTP(s) request: " << e.what() << std::endl;
   }
@@ -249,7 +244,7 @@ void Client::do_request() const
 /**
  * Debug certificate validation callback method
  */
-bool Client::verify_certificate_callback(bool preverified, boost::asio::ssl::verify_context& context) const
+bool Client::verify_certificate_callback(bool preverified, asio::ssl::verify_context& context) const
 {
   X509_STORE_CTX* sctx = context.native_handle();
   X509* cert = X509_STORE_CTX_get_current_cert(sctx);
@@ -289,12 +284,12 @@ bool Client::verify_certificate_callback(bool preverified, boost::asio::ssl::ver
  * \param[in] socket Socket connection
  * \param[in] request Request data
  */
-template <typename SyncReadStream> ResultResponse Client::handle_request(SyncReadStream& socket, boost::asio::streambuf& request)
+template <typename SyncReadStream> ResultResponse Client::handle_request(SyncReadStream& socket, asio::streambuf& request)
 {
   ResultResponse result;
 
   const auto start_request_time_point = std::chrono::steady_clock::now();
-  boost::asio::write(socket, request);
+  asio::write(socket, request);
 
   // Note: End _request_ time point is now also the start of the _response_ time point
   const auto end_request_time_point = std::chrono::steady_clock::now();
@@ -315,10 +310,10 @@ template <typename SyncReadStream> ResultResponse Client::handle_request(SyncRea
 template <typename SyncReadStream> Reply Client::parse_response(SyncReadStream& socket)
 {
   Reply reply;
-  boost::asio::streambuf response;
+  asio::streambuf response;
 
   // Read until the status line
-  boost::asio::read_until(socket, response, "\r\n");
+  asio::read_until(socket, response, "\r\n");
 
   // Get HTTP Status lines
   std::istream response_stream(&response);
@@ -327,7 +322,7 @@ template <typename SyncReadStream> Reply Client::parse_response(SyncReadStream& 
   std::getline(response_stream, reply.status_message);
 
   // Get till all the headers, can we improve the performance of this call?
-  boost::asio::read_until(socket, response, "\r\n\r\n");
+  asio::read_until(socket, response, "\r\n\r\n");
   // Extract headers
   std::string header_line;
   bool chunked = false;
@@ -360,7 +355,7 @@ template <typename SyncReadStream> Reply Client::parse_response(SyncReadStream& 
   {
     response_content_length -= response.size();
     if (response_content_length > 0)
-      boost::asio::read(socket, response, boost::asio::transfer_exactly(response_content_length));
+      asio::read(socket, response, asio::transfer_exactly(response_content_length));
 
     std::stringstream re;
     re << &response;
@@ -369,10 +364,10 @@ template <typename SyncReadStream> Reply Client::parse_response(SyncReadStream& 
   else
   {
     // Read all non-chunked data at once
-    boost::system::error_code error;
-    boost::asio::read(socket, response, boost::asio::transfer_all(), error);
+    asio::error_code error;
+    asio::read(socket, response, asio::transfer_all(), error);
     // We also ignore stream truncated errors
-    if (error != boost::asio::error::eof && error != boost::asio::ssl::error::stream_truncated && error != boost::system::errc::success)
+    if (error != asio::error::eof && error != asio::ssl::error::stream_truncated) // is there also a success error with Asio standalone?
     {
       std::cerr << "Error: Error during reading HTTP response: " << error.message() << std::endl;
     }

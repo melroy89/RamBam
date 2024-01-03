@@ -1,6 +1,6 @@
 #pragma once
 
-#include <boost/asio.hpp>
+#include <asio.hpp>
 #include <thread>
 
 /**
@@ -24,17 +24,18 @@ public:
   template <typename Func, typename... Args> void enqueue(Func&& func, Args&&... args)
   {
     // Post the work to the io_service
-    boost::asio::post(io_service_, std::bind(std::forward<Func>(func), std::forward<Args>(args)...));
+    asio::post(io_context_, std::bind(std::forward<Func>(func), std::forward<Args>(args)...));
   }
-  boost::asio::io_service& get_context()
+
+  asio::io_context& get_context()
   {
-    return std::ref(io_service_);
+    return std::ref(io_context_);
   }
 
 private:
   bool is_started_;
   std::size_t number_; // Number of threads
-  boost::asio::io_service io_service_;
+  asio::io_context io_context_;
   std::vector<std::thread> threads_;
-  boost::asio::executor_work_guard<boost::asio::io_context::executor_type> work_guard_;
+  asio::executor_work_guard<asio::io_context::executor_type> work_guard_;
 };

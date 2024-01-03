@@ -1,10 +1,7 @@
 #pragma once
 
-#include <boost/asio/io_context.hpp>
-#include <boost/asio/ip/tcp.hpp>
-#include <boost/asio/ssl/stream.hpp>
-#include <boost/asio/streambuf.hpp>
-#include <boost/asio/use_awaitable.hpp>
+#include <asio.hpp>
+#include <asio/ssl.hpp>
 
 #include "reply_struct.h"
 #include "result_response_struct.h"
@@ -17,7 +14,7 @@
 class Client
 {
 public:
-  explicit Client(const Settings& settings, boost::asio::io_context& io_context);
+  explicit Client(const Settings& settings, asio::io_context& io_context);
   virtual ~Client();
 
   void do_request() const;
@@ -33,16 +30,16 @@ private:
   bool override_verify_tls_;
   bool debug_verify_tls_;
   long ssl_options_;
-  boost::asio::io_context& io_context_;
+  asio::io_context& io_context_;
 
-  boost::asio::ip::tcp::resolver::iterator endpoint_iterator_;
+  asio::ip::basic_resolver<asio::ip::tcp>::results_type resolve_result_;
   std::chrono::duration<double, std::milli> dns_lookup_duration_;
   std::string protocol_;
   std::string host_;
   std::string port_;
   std::string path_params_;
 
-  bool verify_certificate_callback(bool preverified, boost::asio::ssl::verify_context& context) const;
-  template <typename SyncReadStream> static ResultResponse handle_request(SyncReadStream& socket, boost::asio::streambuf& request);
+  bool verify_certificate_callback(bool preverified, asio::ssl::verify_context& context) const;
+  template <typename SyncReadStream> static ResultResponse handle_request(SyncReadStream& socket, asio::streambuf& request);
   template <typename SyncReadStream> static Reply parse_response(SyncReadStream& socket);
 };

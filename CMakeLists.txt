@@ -62,19 +62,26 @@ target_compile_features(${PROJECT_TARGET} PUBLIC cxx_std_20)
 set_target_properties(${PROJECT_TARGET} PROPERTIES CXX_EXTENSIONS OFF)
 
 find_package(OpenSSL REQUIRED)
+find_package(Threads REQUIRED)
 
 include(FetchContent)
 
 # Download external dependencies
-# Boost Asio
-set(BOOST_INCLUDE_LIBRARIES asio regex algorithm)
-set(BOOST_ENABLE_CMAKE ON)
-FetchContent_Declare(
-  Boost
-  URL https://github.com/boostorg/boost/releases/download/boost-1.84.0/boost-1.84.0.tar.xz
-  URL_MD5 893b5203b862eb9bbd08553e24ff146a
+# Asio
+include(FetchContent)
+FetchContent_Declare(asio
+  GIT_REPOSITORY  https://github.com/chriskohlhoff/asio.git
+  GIT_TAG         asio-1-29-0
+  GIT_SHALLOW     TRUE
 )
-FetchContent_MakeAvailable(Boost)
+FetchContent_MakeAvailable(asio)
+
+add_library(asio INTERFACE)
+target_include_directories(asio INTERFACE ${asio_SOURCE_DIR}/asio/include)
+# Use as standalone library and do not allow deprecated features
+target_compile_definitions(asio INTERFACE ASIO_STANDALONE ASIO_NO_DEPRECATED)
+# Link threads as dependency
+target_link_libraries(asio INTERFACE Threads::Threads)
 
 # Lightweight C++ command line option parser
 FetchContent_Declare(
@@ -89,8 +96,8 @@ set(CXXOPTS_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)
 set(CXXOPTS_ENABLE_WARNINGS OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(cxxopts)
 
-# Link CXXOPTS, Boost Asio plus OPenSSL
-target_link_libraries(${PROJECT_TARGET} cxxopts Boost::asio OpenSSL::Crypto OpenSSL::SSL)
+# Link CXXOPTS, Asio and OpenSSL
+target_link_libraries(${PROJECT_TARGET} cxxopts asio OpenSSL::Crypto OpenSSL::SSL)
 
 target_include_directories(${PROJECT_TARGET} PRIVATE ${PROJECT_SOURCE_DIR}/include ${PROJECT_BINARY_DIR})
 
