@@ -20,5 +20,8 @@ private:
   Handler() = delete;
 
   static void test_info(const ThreadPool& pool, const Settings& settings);
-  static void test_report(const Settings& settings, int total, std::chrono::duration<double, std::milli> total_test_duration);
+  static void test_report(const Settings& settings,
+                          int total,
+                          std::chrono::duration<double, std::milli> total_queue_time,
+                          std::chrono::duration<double, std::milli> total_test_duration);
 };

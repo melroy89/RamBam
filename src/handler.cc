@@ -42,16 +42,18 @@ void Handler::start_threads(const Settings& settings)
       pool.enqueue(&Client::do_request, &client);
     }
   }
-  const auto end_test_time_point = std::chrono::steady_clock::now();
 
+  const auto end_test_queue_time_point = std::chrono::steady_clock::now();
   // Wait until all threads are finished
   pool.stop();
+  const auto end_test_time_point = std::chrono::steady_clock::now();
 
+  std::chrono::duration<double, std::milli> total_queue_time = end_test_queue_time_point - start_test_time_point;
   std::chrono::duration<double, std::milli> total_test_duration = end_test_time_point - start_test_time_point;
 
   // Show test report
   if (!settings.silent)
-    test_report(settings, total, total_test_duration);
+    test_report(settings, total, total_queue_time, total_test_duration);
 }
 
 // Print info about the test
@@ -76,7 +78,10 @@ void Handler::test_info(const ThreadPool& pool, const Settings& settings)
 }
 
 // Print test report
-void Handler::test_report(const Settings& settings, int total, std::chrono::duration<double, std::milli> total_test_duration)
+void Handler::test_report(const Settings& settings,
+                          int total,
+                          std::chrono::duration<double, std::milli> total_queue_time,
+                          std::chrono::duration<double, std::milli> total_test_duration)
 {
   std::cout << "=============== Report ===============" << std::endl;
   if (settings.duration_sec == 0)
@@ -84,7 +89,6 @@ void Handler::test_report(const Settings& settings, int total, std::chrono::dura
     // Number of Requests test
     std::cout << "Type of test: Number of Requests" << std::endl;
     std::cout << "Request count input: " << settings.repeat_requests_count << std::endl;
-    std::cout << "Total test duration: " << total_test_duration << std::endl;
   }
   else
   {
@@ -92,7 +96,8 @@ void Handler::test_report(const Settings& settings, int total, std::chrono::dura
     std::cout << "Type of test: Duration" << std::endl;
     std::cout << "Duration input: " << settings.duration_sec << " sec" << std::endl;
     std::cout << "Total requests executed: " << total << std::endl;
-    std::cout << "Total test duration: " << total_test_duration << std::endl;
   }
+  std::cout << "Total internal queue time: " << total_queue_time << std::endl;
+  std::cout << "Total test duration: " << total_test_duration << std::endl;
   std::cout << "========== Test Completed ! ==========" << std::endl;
 }
