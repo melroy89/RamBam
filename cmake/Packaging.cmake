@@ -9,7 +9,6 @@ set(CPACK_SOURCE_PACKAGE_FILE_NAME "${PROJECT_TARGET}-${CPACK_PACKAGE_VERSION}")
 set(CPACK_DEBIAN_PACKAGE_SECTION "web")
 set(CPACK_RPM_PACKAGE_GROUP "Applications/Internet")
 set(CPACK_PACKAGE_FILE_NAME "${PROJECT_NAME}-v${CPACK_PACKAGE_VERSION}") # Without '-Linux', '-Windows' or -Darwin suffix
-set(CPACK_PACKAGE_EXECUTABLES "rambam;RamBam")
 
 # include CPack model once all variables are set
 include(CPack)
