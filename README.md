@@ -11,22 +11,22 @@ I didn't create a release yet (it's still in development), but if you are using 
 
 Help: `./rambam -h`
 
-Usage (_default:_ duration test of _only_ 1 second):
+Usage (_default:_ Number of Requests GET Test of "_just_" 10.000 requests):
 
 ```bash
 ./rambam domain.tld
 ```
 
-Increase the default **duration test** to 10 seconds instead of 1 second (`-d` for duration):
+Increase the default **request count** from 10.000 to 80.000 requests (`-r` for requests):
+
+```bash
+./rambam -r 80000 https://domain.tld
+```
+
+Using the **duration test** for 10 seconds (`-d` for duration):
 
 ```bash
 ./rambam -d 10 https://domain.tld
-```
-
-Using **request count test** (`-t` for number of requests):
-
-```bash
-./rambam -r 45 https://domain.tld
 ```
 
 Example using **Post requests** (`-p` for **JSON** Post data):
@@ -41,7 +41,7 @@ More advanced parameters (`-v` for verbose output, `--debug` for additional TLS 
 ./rambam -v --debug https://domain.tld
 ```
 
-You can use multiple parameters together, except the `-d` for duration test (in seconds) and `-r` for request test (total requests). Just pick one.
+You can use multiple parameters together, except the `-d` for duration test (in seconds) and `-r` for request test (total requests). Just pick one of the two different tests.
 
 ## Developers
 
@@ -68,6 +68,7 @@ Binary is now located at: `build/rambam`.
 
 # Notes
 
+- The 'Number of Requests test' is faster than the 'Duration test', because duration test needs to check the current time passed.
 - Enable debug output via: `--debug` flag.
 - If you have a self-signed certificate try to use `-o` flag to override verifcation or disable peer certificate verification using: `--disable-peer-verify` flag.
 - Silent all output via : `-s` flag.

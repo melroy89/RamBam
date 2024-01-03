@@ -1,5 +1,7 @@
 #pragma once
 
+#include <chrono>
+
 #include "settings_struct.h"
 
 // Forward declaration
@@ -17,5 +19,6 @@ public:
 private:
   Handler() = delete;
 
-  static void info(const ThreadPool& pool, const Settings& settings);
+  static void test_info(const ThreadPool& pool, const Settings& settings);
+  static void test_report(const Settings& settings, int total, std::chrono::duration<double, std::milli> total_test_duration);
 };

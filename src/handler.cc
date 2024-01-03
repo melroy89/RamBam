@@ -12,10 +12,9 @@ void Handler::start_threads(const Settings& settings)
 {
   int total = 0;
   ThreadPool pool(settings.repeat_thread_count);
+  // Show test information
   if (!settings.silent)
-  {
-    info(pool, settings);
-  }
+    test_info(pool, settings);
 
   // Prepare client
   Client client(settings, pool.get_context());
@@ -23,14 +22,8 @@ void Handler::start_threads(const Settings& settings)
   // Prepare thread-pool
   pool.start();
 
-  if (settings.repeat_requests_count > 0)
-  {
-    for (int i = 0; i < settings.repeat_requests_count; ++i)
-    {
-      pool.enqueue(&Client::do_request, &client);
-    }
-  }
-  else
+  const auto start_test_time_point = std::chrono::steady_clock::now();
+  if (settings.duration_sec > 0)
   {
     std::chrono::seconds duration(settings.duration_sec);
     const auto now = std::chrono::system_clock::now();
@@ -42,30 +35,33 @@ void Handler::start_threads(const Settings& settings)
       ++total;
     }
   }
+  else
+  {
+    for (int i = 0; i < settings.repeat_requests_count; ++i)
+    {
+      pool.enqueue(&Client::do_request, &client);
+    }
+  }
+  const auto end_test_time_point = std::chrono::steady_clock::now();
 
   // Wait until all threads are finished
   pool.stop();
 
-  // Show report / info
-  if (!settings.silent && settings.repeat_requests_count == 0)
-  {
-    std::cout << "--------------------------------------" << std::endl;
-    std::cout << "Total requests executed: " << total << std::endl;
-  }
+  std::chrono::duration<double, std::milli> total_test_duration = end_test_time_point - start_test_time_point;
+
+  // Show test report
   if (!settings.silent)
-  {
-    std::cout << "=========== Test Completed ===========" << std::endl;
-  }
+    test_report(settings, total, total_test_duration);
 }
 
 // Print info about the test
-void Handler::info(const ThreadPool& pool, const Settings& settings)
+void Handler::test_info(const ThreadPool& pool, const Settings& settings)
 {
   std::cout << "======================================" << std::endl;
   std::cout << "URL under test: " << settings.url << std::endl;
-  if (settings.repeat_requests_count > 0)
+  if (settings.duration_sec == 0)
   {
-    // Request count test
+    // Number of Requests test
     std::cout << "Type of test: Number of Requests" << std::endl;
     std::cout << "Total requests: " << settings.repeat_requests_count << std::endl;
   }
@@ -77,4 +73,26 @@ void Handler::info(const ThreadPool& pool, const Settings& settings)
   }
   std::cout << "Threads: " << pool.get_number_threads() << std::endl;
   std::cout << "======================================" << std::endl;
+}
+
+// Print test report
+void Handler::test_report(const Settings& settings, int total, std::chrono::duration<double, std::milli> total_test_duration)
+{
+  std::cout << "=============== Report ===============" << std::endl;
+  if (settings.duration_sec == 0)
+  {
+    // Number of Requests test
+    std::cout << "Type of test: Number of Requests" << std::endl;
+    std::cout << "Request count input: " << settings.repeat_requests_count << std::endl;
+    std::cout << "Total test duration: " << total_test_duration << std::endl;
+  }
+  else
+  {
+    // Duration test
+    std::cout << "Type of test: Duration" << std::endl;
+    std::cout << "Duration input: " << settings.duration_sec << " sec" << std::endl;
+    std::cout << "Total requests executed: " << total << std::endl;
+    std::cout << "Total test duration: " << total_test_duration << std::endl;
+  }
+  std::cout << "========== Test Completed ! ==========" << std::endl;
 }

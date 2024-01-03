@@ -31,9 +31,9 @@ Settings process_arguments(const cxxopts::ParseResult& result, cxxopts::Options&
 
   // Repeat the requests x times in parallel using threads
   settings.repeat_thread_count = result["thread-count"].as<int>();
-  if (result.count("request-count"))
-    settings.repeat_requests_count = result["request-count"].as<int>();
-  settings.duration_sec = result["duration"].as<int>();
+  settings.repeat_requests_count = result["request-count"].as<int>();
+  if (result.count("duration"))
+    settings.duration_sec = result["duration"].as<int>();
   if (result.count("post"))
     settings.post_data = result["post"].as<std::string>();
   settings.verify_peer = !(result["disable-peer-verify"].as<bool>());
@@ -83,10 +83,10 @@ int main(int argc, char* argv[])
   options.add_options()
     ("v,verbose", "Verbose (More output)", cxxopts::value<bool>()->default_value("false"))
     ("s,silent", "Silent (No output)", cxxopts::value<bool>()->default_value("false"))
-    ("d,duration", "Test duration in seconds", cxxopts::value<int>()->default_value("1"))
     ("t,thread-count", "Thread count the default is zero, but that use the supported number of current threads of the hardware", cxxopts::value<int>()->default_value("0"))
-    ("r,request-count", "Total amount of requests", cxxopts::value<int>())
+    ("r,request-count", "Total amount of requests", cxxopts::value<int>()->default_value("10000"))
     ("p,post", "Post JSON data (request will be POST instead of GET)", cxxopts::value<std::string>())
+    ("d,duration", "Test duration in seconds", cxxopts::value<int>())
     ("D,debug", "Enable debugging (eg. debug TLS)", cxxopts::value<bool>()->default_value("false"))
     ("disable-peer-verify", "Disable peer certificate verification", cxxopts::value<bool>()->default_value("false"))
     ("o,override-verify-tls", "Override TLS peer certificate verification", cxxopts::value<bool>()->default_value("false"))
