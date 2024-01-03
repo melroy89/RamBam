@@ -10,6 +10,7 @@
  */
 void Handler::start_threads(const Settings& settings)
 {
+  int total = 0;
   ThreadPool pool(settings.repeat_thread_count);
   if (!settings.silent)
   {
@@ -19,6 +20,7 @@ void Handler::start_threads(const Settings& settings)
   // Prepare client
   Client client(settings, pool.get_context());
 
+  // Prepare thread-pool
   pool.start();
 
   if (settings.repeat_requests_count > 0)
@@ -32,24 +34,25 @@ void Handler::start_threads(const Settings& settings)
   {
     std::chrono::seconds duration(settings.duration_sec);
     const auto now = std::chrono::system_clock::now();
-    int total = 0;
-    while (std::chrono::system_clock::now() - now < duration)
-    {
+    while (std::chrono::system_clock::now() - now < duration) {
       pool.enqueue(&Client::do_request, &client);
-      // std::this_thread::yield();
-      std::this_thread::sleep_for(std::chrono::milliseconds(4));
+      //std::this_thread::yield();
+      std::this_thread::sleep_for(std::chrono::nanoseconds(200000));
       ++total;
-    }
-    if (!settings.silent)
-    {
-      std::cout << "--------------------------------------" << std::endl;
-      std::cout << "Total requests executed: " << total << std::endl;
     }
   }
 
+  // Wait until all threads are finished
   pool.stop();
-  if (!settings.silent)
+
+  // Show report / info
+  if (!settings.silent && settings.repeat_requests_count == 0) {
+    std::cout << "--------------------------------------" << std::endl;
+    std::cout << "Total requests executed: " << total << std::endl;
+  }
+  if (!settings.silent) {
     std::cout << "=========== Test Completed ===========" << std::endl;
+  }
 }
 
 // Print info about the test
