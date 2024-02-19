@@ -4,8 +4,8 @@
 # Depends on one environment variable: $CI_COMMIT_TAG
 
 if [ -z ${CI_COMMIT_TAG} ]; then
-    echo "ERROR: CI_COMMIT_TAG env. variable is not set! Exit"
-    exit 1
+    echo "ERROR: CI_COMMIT_TAG env. variable is not set! Do not build archive. Exiting..."
+    exit 0
 fi
 # Create version.txt
 echo -n "${CI_COMMIT_TAG}" > version.txt
