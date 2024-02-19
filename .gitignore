@@ -3,6 +3,9 @@
 /build_prod
 /build_debug
 
+# Doxygen
+doc/doxygen/
+
 # CMake
 CMakeLists.txt.user
 CMakeCache.txt
@@ -16,4 +19,6 @@ compile_commands.json
 CTestTestfile.cmake
 _deps
 
+# VS Code
+.vscode/*
 

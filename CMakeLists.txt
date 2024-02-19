@@ -1,20 +1,44 @@
 cmake_minimum_required(VERSION 3.20)
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-
-# Get GIT_TAG_VERSION from most recent git tag
-include(GitVersion)
-
 set(PROJECT_NAME RamBam)
 set(PROJECT_TARGET rambam)
+
+option(DOXYGEN "Build Documentation" OFF)
+option(PACKAGE "Build packages in release mode" OFF)
+
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
+# If we have a git folder, get GIT_TAG_VERSION from most recent git tag
+if(EXISTS "${CMAKE_SOURCE_DIR}/.git")
+  include(GitVersion)
+  set(LOCAL_PROJECT_VERSION ${GIT_TAG_VERSION})
+else()
+  # In source archives there is no .git folder present.
+  # If CUSTOM_PROJECT_VERSION is defined use it as version.
+  if(DEFINED CUSTOM_PROJECT_VERSION)
+      set(LOCAL_PROJECT_VERSION "${CUSTOM_PROJECT_VERSION}")
+  elseif(EXISTS "${CMAKE_SOURCE_DIR}/version.txt")
+    # Read version from version.txt file
+    file(READ "version.txt" LOCAL_PROJECT_VERSION)
+  else()
+    # Fallback to version 1.0.0
+    set(LOCAL_PROJECT_VERSION "1.0.0")
+  endif()
+endif()
+
 
 find_program(CCACHE_PROGRAM ccache)
 if(CCACHE_PROGRAM)
     set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
 endif()
 
+# Build code documentation using Doxygen
+if(DOXYGEN)
+  include(Doxygen)
+endif()
+
 project(${PROJECT_NAME}
-  VERSION ${GIT_TAG_VERSION}
+  VERSION ${LOCAL_PROJECT_VERSION}
   DESCRIPTION "Stress test your website/API with massive parallel HTTP requests"
   LANGUAGES CXX)
 
@@ -28,7 +52,7 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DNDEBUG")
 
 # Production build
-if("${CMAKE_BUILD_TYPE}" STREQUAL "Release")
+if("${CMAKE_BUILD_TYPE}" STREQUAL "Release" AND PACKAGE)
   # Include CPack packaging settings
   include(Packaging)
 endif()
