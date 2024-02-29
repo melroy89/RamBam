@@ -10,4 +10,4 @@ fi
 # Create version.txt
 echo -n "${CI_COMMIT_TAG}" > version.txt
 # Create source archive (tar.gz)
-git archive --format=tar.gz --output=build_prod/RamBam-Source-${CI_COMMIT_TAG}.tar.gz --add-file=version.txt HEAD
+git archive --format=tar.gz --output=build_prod/RamBam-Source-v${CI_COMMIT_TAG}.tar.gz --add-file=version.txt HEAD
