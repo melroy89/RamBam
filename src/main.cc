@@ -102,8 +102,8 @@ int main(int argc, char* argv[])
   {
     auto result = options.parse(argc, argv);
     Settings settings = process_arguments(result, options);
-    // Start threads, blocking call until all threads are finished
-    Handler::start_threads(settings);
+    // Start threads, it's a blocking call until all threads are finished or stopped
+    Handler::start(settings);
   }
   catch (const cxxopts::exceptions::exception& error)
   {

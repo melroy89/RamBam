@@ -62,7 +62,6 @@ configure_file(
   "${PROJECT_BINARY_DIR}/project_config.h")
 
 set(HEADERS
-  include/thread-pool.h
   include/client.h
   include/handler.h
   include/reply_struct.h
@@ -72,7 +71,6 @@ set(HEADERS
 
 set(SOURCES
   src/main.cc
-  src/thread-pool.cc
   src/client.cc
   src/handler.cc
   ${HEADERS}
@@ -95,7 +93,7 @@ include(FetchContent)
 include(FetchContent)
 FetchContent_Declare(asio
   GIT_REPOSITORY  https://github.com/chriskohlhoff/asio.git
-  GIT_TAG         asio-1-29-0
+  GIT_TAG         asio-1-30-2
   GIT_SHALLOW     TRUE
 )
 FetchContent_MakeAvailable(asio)
