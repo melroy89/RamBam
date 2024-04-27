@@ -223,8 +223,9 @@ void Client::do_request() const
     else if (!silent_)
     {
       // TODO: Something is off with result.reply.status_message (hidden special chars?)
-      std::cout << "Response: " << std::to_string(result.reply.status_code) << " in " << result.duration.total_without_dns.count() << "ms"
-                << std::endl;
+      // We should silent this by default! Instead, show some process bar...
+      // std::cout << "Response: " << std::to_string(result.reply.status_code) << " in " << result.duration.total_without_dns.count() << "ms"
+      //          << std::endl;
     }
   }
   catch (const asio::system_error& e)
