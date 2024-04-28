@@ -49,7 +49,7 @@ void Handler::start(const Settings& settings)
       {
         asio::post(pool, worker);
         ++total;
-        // Only do the below once every 1000 requests, so we use less resource / CPU time
+        // Only do the below once every 1000 requests, meaning less resources / CPU time
         if (!settings.silent && (total % 1000) == 0)
         {
           auto remaining_time = std::chrono::duration_cast<std::chrono::seconds>(stop_time - current_time).count();
@@ -71,7 +71,7 @@ void Handler::start(const Settings& settings)
     for (int i = 0; i < settings.repeat_requests_count; ++i)
     {
       asio::post(pool, worker);
-      // Only do the below every 1000 requests, so we use less resource / CPU time
+      // Only do the below every 1000 requests, meaning less resources / CPU time
       if (!settings.silent && (i % 1000) == 0)
       {
         int percentage = (i + 1) * 100 / settings.repeat_requests_count;
