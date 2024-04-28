@@ -64,6 +64,7 @@ configure_file(
 set(HEADERS
   include/client.h
   include/handler.h
+  include/output.h
   include/reply_struct.h
   include/duration_struct.h
   include/result_response_struct.h
@@ -73,6 +74,7 @@ set(SOURCES
   src/main.cc
   src/client.cc
   src/handler.cc
+  src/output.cc
   ${HEADERS}
 )
 
