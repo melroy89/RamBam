@@ -44,7 +44,7 @@ void Handler::start(const Settings& settings)
       auto current_time = now();
       if (current_time < stop_time)
       {
-        asio::post(pool, worker);
+        asio::dispatch(pool, worker);
         ++total;
         // Only do the below once every 1000 requests, meaning less resources / CPU time
         if (!settings.silent && (total % 1000) == 0)
@@ -68,7 +68,7 @@ void Handler::start(const Settings& settings)
   {
     for (int i = 0; i < settings.requests; ++i)
     {
-      asio::post(pool, worker);
+      asio::dispatch(pool, worker);
       // Only do the below every 1000 requests, meaning less resources / CPU time
       if (!settings.silent && (i % 1000) == 0)
       {

@@ -84,7 +84,7 @@ int main(int argc, char* argv[])
     ("v,verbose", "Verbose (More output)", cxxopts::value<bool>()->default_value("false"))
     ("s,silent", "Silent (No output)", cxxopts::value<bool>()->default_value("false"))
     ("t,threads", "Number of threads, default: supported number of current threads of the hardware", cxxopts::value<int>()->default_value("0"))
-    ("r,requests", "Total number of test requests", cxxopts::value<int>()->default_value("30000")) // Set this default back to 100
+    ("r,requests", "Total number of test requests", cxxopts::value<int>()->default_value("300"))
     ("d,duration", "Test duration in seconds", cxxopts::value<int>()) // Make this option the default, instead of requests
     ("p,post", "Post JSON data (request will be POST instead of GET)", cxxopts::value<std::string>())
     ("D,debug", "Enable debugging (eg. debug TLS)", cxxopts::value<bool>()->default_value("false"))

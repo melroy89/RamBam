@@ -4,5 +4,5 @@
 
 cd ./build
 G_DEBUG=gc-friendly G_SLICE=always-malloc valgrind \
---leak-check=full --track-origins=yes \
+--leak-check=full --show-leak-kinds=all --track-origins=yes \
 ./rambam
