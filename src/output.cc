@@ -51,7 +51,7 @@ void Output::test_info(const std::size_t num_threads, const Settings& settings)
   {
     // Number of Requests test
     info.push_back({"Type of test:", "Number of Requests"});
-    info.push_back({"Request count input:", std::to_string(settings.repeat_requests_count)});
+    info.push_back({"Request count input:", std::to_string(settings.requests)});
   }
   else
   {
@@ -73,8 +73,8 @@ void Output::test_report(const Settings& settings, int total, std::chrono::durat
   if (settings.duration_sec == 0)
   {
     // Number of Requests test
-    report.push_back({"Request count input:", std::to_string(settings.repeat_requests_count)});
-    report.push_back({"Average reqs/sec:", to_string_with_precision(settings.repeat_requests_count / total_seconds)});
+    report.push_back({"Request count input:", std::to_string(settings.requests)});
+    report.push_back({"Average reqs/sec:", to_string_with_precision(settings.requests / total_seconds)});
   }
   else
   {

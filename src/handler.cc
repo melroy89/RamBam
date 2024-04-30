@@ -15,7 +15,7 @@ void Handler::start(const Settings& settings)
 
   // By default, use the number of concurrent threads supported (only a hint),
   // could return '0' when not computable.
-  std::size_t number_of_threads = (settings.repeat_thread_count == 0) ? std::thread::hardware_concurrency() : settings.repeat_thread_count;
+  std::size_t number_of_threads = (settings.threads == 0) ? std::thread::hardware_concurrency() : settings.threads;
   // Fallback to 4 threads if the number of concurrent threads cannot be computed
   if (number_of_threads == 0)
     number_of_threads = 4;
@@ -26,13 +26,14 @@ void Handler::start(const Settings& settings)
     Output::test_info(number_of_threads, settings);
   }
 
-  asio::thread_pool pool(settings.repeat_thread_count);
+  asio::thread_pool pool(number_of_threads);
   asio::io_context io_context;
 
   Client client(settings, io_context);
   auto worker = [client]() { client.do_request(); };
 
   const auto start_test_time_point = std::chrono::steady_clock::now();
+  // Duration test?
   if (settings.duration_sec > 0)
   {
     std::chrono::seconds execution_duration(settings.duration_sec);
@@ -62,16 +63,17 @@ void Handler::start(const Settings& settings)
       }
     }
   }
+  // Number of requests test?
   else
   {
-    for (int i = 0; i < settings.repeat_requests_count; ++i)
+    for (int i = 0; i < settings.requests; ++i)
     {
       asio::post(pool, worker);
       // Only do the below every 1000 requests, meaning less resources / CPU time
       if (!settings.silent && (i % 1000) == 0)
       {
-        int percentage = (i + 1) * 100 / settings.repeat_requests_count;
-        Output::display_progress_bar(percentage, -1, (settings.repeat_requests_count - i - 1));
+        int percentage = (i + 1) * 100 / settings.requests;
+        Output::display_progress_bar(percentage, -1, (settings.requests - i - 1));
       }
     }
   }

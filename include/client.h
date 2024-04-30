@@ -24,8 +24,6 @@ public:
   void do_request() const;
 
 private:
-  int repeat_requests_count_;
-  int duration_sec_;
   std::string url_;
   std::string post_data_;
   bool verbose_;

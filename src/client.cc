@@ -13,9 +13,7 @@
  * \brief HTTP Client Constructor
  */
 Client::Client(const Settings& settings, asio::io_context& io_context)
-    : repeat_requests_count_(settings.repeat_requests_count),
-      duration_sec_(settings.duration_sec),
-      url_(settings.url),
+    : url_(settings.url),
       post_data_(settings.post_data),
       verbose_(settings.verbose),
       silent_(settings.silent),

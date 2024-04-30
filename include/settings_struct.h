@@ -4,8 +4,8 @@
 
 struct Settings
 {
-  int repeat_thread_count;
-  int repeat_requests_count;
+  int threads;
+  int requests;
   int duration_sec;
 
   std::string url; // TODO: Support multiple URLs as a vector

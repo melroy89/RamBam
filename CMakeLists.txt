@@ -111,7 +111,7 @@ target_link_libraries(asio INTERFACE Threads::Threads)
 FetchContent_Declare(
   cxxopts
   GIT_REPOSITORY https://github.com/jarro2783/cxxopts.git
-  GIT_TAG        v3.1.1
+  GIT_TAG        v3.2.0
   GIT_SHALLOW    TRUE
 )
 set(CXXOPTS_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
