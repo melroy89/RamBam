@@ -47,6 +47,16 @@ rambam -v --debug https://domain.tld
 
 You can use multiple parameters together, except the `-d` for duration test (in seconds) and `-r` for request test (total requests). Just pick one of the two different tests.
 
+## Additional options
+
+- Enable debug output via: `--debug` flag.
+- If you have a self-signed certificate try to use `-o` flag to override verifcation or disable peer certificate verification using: `--disable-peer-verify` flag.
+- Silent all output via : `-s` flag.
+
+_Note:_ We don't support `transfer-encoding: chunked` (HTTP 1.1), hence we use only HTTP 1.0 requests.
+
+---
+
 ## Developers
 
 ### Requirements
@@ -69,11 +79,3 @@ cmake --build ./build -j 8 --config Release --target rambam
 ```
 
 Binary is now located at: `build/rambam`.
-
-# Notes
-
-- The 'Number of Requests test' is faster than the 'Duration test', because duration test needs to check the current time passed.
-- Enable debug output via: `--debug` flag.
-- If you have a self-signed certificate try to use `-o` flag to override verifcation or disable peer certificate verification using: `--disable-peer-verify` flag.
-- Silent all output via : `-s` flag.
-- We don't support `transfer-encoding: chunked` (only possible with HTTP 1.1), hence we use only HTTP 1.0 requests.
