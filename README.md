@@ -1,6 +1,6 @@
 # RamBam
 
-RamBam is a stress-test for API/web app/website, using massive parallel HTTP requests (Soon: Triggered remotely).  
+RamBam is a stress-test/benchmarking tool for HTTP, using massive parallel HTTP requests.  
 RamBam is written in C++ and using a [Asio](https://think-async.com/Asio/) (also written in C++).
 
 ## Demo
