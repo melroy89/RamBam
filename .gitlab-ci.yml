@@ -1,4 +1,4 @@
-image: danger89/cmake:5.0
+image: danger89/cmake:5.1
 
 stages:
   - test
